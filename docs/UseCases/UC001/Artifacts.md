@@ -373,6 +373,36 @@ classDiagram
 
 ---
 
+## ER Diagram
+### Metadata
+| Element     | Description |
+|-------------|-------------|
+| ID          | UC001-ERD   |
+| Title       | Sign in using a client certificate - ER Diagram |
+### Diagram
+```mermaid
+erDiagram
+    User {
+        GUID Id PK
+        GUID ClientCertificateId FK
+        STRING Email "Unique"
+        BOOLEAN IsActive
+    }
+
+    ClientCertificate {
+        GUID Id PK
+        STRING Subject
+        STRING Issuer
+        DATETIME ValidFrom
+        DATETIME ValidTo
+        STRING SerialNumber
+    }
+        
+    User ||--o| ClientCertificate : has_a
+```
+
+---
+
 <!-- Links to related artifacts -->
 [TR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#technical-risk
 [OR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#operational-risk
