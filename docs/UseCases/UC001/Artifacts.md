@@ -23,18 +23,34 @@
 ---
 
 ## Domain Model
+This is a initial version of the Domain Model for the use case "Sign in using a client certificate". It captures the key entities, their attributes, and relationships relevant to the authentication process using client certificates.
+The maintained Domain Model can be found [here][DM].
+
+### Metadata
+| Element     | Description |
+|-------------|-------------|
+| ID          | UC001-DM    |
+| Title       | Sign in using a client certificate - Domain Model |
+
+### Diagram
+
 ```mermaid
 classDiagram
     class User {
-        Èmail
-        Certificate
+        Email
+        Is Active
     }
+
+    class ClientCertificate {
+        Subject
+        Issuer
+        Valid From
+        Valid To
+        Serial Number
+    }
+
+    User "1" o-- "0..1" ClientCertificate : has a
 ```
-
----
-
-
-  
 
 ---
 
@@ -241,7 +257,125 @@ sequenceDiagram
 
 ---
 
-## Related artifacts
-- [TR001]: Technical Risk password phising
-- [OR001]: Operational Risk
-- [LCR001]: Legal and Compliance Risk
+## DCD
+This is an initial version of the Domain Class Diagram (DCD) for the use case "Sign in using a client certificate". It captures the key entities, their attributes, and relationships relevant to the authentication process using client certificates.
+The maintained DCD can be found [here][DCD].
+
+### Metadata
+| Element     | Description |
+|-------------|-------------|
+| ID          | UC001-DCD   |
+| Title       | Sign in using a client certificate - Domain Class Diagram |
+
+### Diagram
+```mermaid
+classDiagram
+
+  namespace Domain.Abstracts {
+    class IEntityBase {
+      <<interface>>
+      +guid Id
+    }
+  }
+
+  namespace  Domain.Entities {
+
+    class UserEntity {
+      +guid Id
+      +string Email
+      +X509Certificate Certificate
+      +isActive: bool
+    }
+
+    class CertificateEntity {
+      +string Subject
+      +string Issuer
+      +DateTime ValidFrom
+      +DateTime ValidTo
+      +string SerialNumber
+    }
+  }
+
+  namespace Core.Abstracts {
+    
+    %% Repositories
+    class IRepository~T~ {
+      <<interface>>
+      +GetByIdAsync(Guid id) Task~TEntity~
+      +GetAllAsync() Task~List__TEntity~
+      +AddAsync(TEntity entity) Task
+      +UpdateAsync(TEntity entity) Task
+      +DeleteAsync(Guid id) Task
+    }
+
+    class IUserRepository {
+      <<interface>>
+    }
+
+    class IAuthenticationService {
+      <<interface>>
+      +AuthenticateUserWithClientCertificate(cert: X509Certificate): AuthResult
+    }
+
+  }
+
+  namespace Core.DTOs {
+    class AuthResult {
+      +string Token
+      +DateTime ExpiresAt
+    }
+  }
+
+  namespace Core.Services {
+    class AuthenticationService {
+      +AuthenticateUserWithClientCertificate(cert: X509Certificate): AuthResult
+    }
+  }
+
+  namespace Infrastructure.Repositories {
+    class RepositoryBase~T~ {
+    }
+
+    class UserRepository {
+      +FindByCertificateSubject(subject: string): UserEntity?
+      +CreateUser(entity: UserEntity): UserEntity
+    }
+  }
+
+  namespace Portfolio.Client {
+    class Todo {
+    }
+  }
+
+  namespace Portfolio.Server {
+    class Login {
+
+    }
+  }
+
+
+  %% Composition
+  UserEntity "1" o-- "0..1" CertificateEntity : has a
+
+  %% Associations
+  UserRepository --* UserEntity : manages
+
+  %% Inheritance
+  UserEntity --|> IEntityBase : inherits
+  UserRepository --|> RepositoryBase~UserEntity~ : inherits
+
+  %% Implementation
+  RepositoryBase~T~ --|> IRepository~T~ : implements
+  IUserRepository --|> IRepository~UserEntity~ : implements
+  UserRepository --|> IUserRepository : implements
+  AuthenticationService --|> IAuthenticationService : implements
+```
+
+---
+
+<!-- Links to related artifacts -->
+[TR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#technical-risk
+[OR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#operational-risk
+[LCR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#legal-and-compliance-risk
+[DCD]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/DCD.md
+[DM]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/DomainModel.md
