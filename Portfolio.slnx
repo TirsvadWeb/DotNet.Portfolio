@@ -1,5 +1,16 @@
 <Solution>
-  <Folder Name="/docs/" />
+  <Folder Name="/docs/">
+    <File Path="docs/DCD.md" />
+    <File Path="docs/DomainModel.md" />
+    <File Path="docs/ER.md" />
+    <File Path="docs/scenarios.md" />
+    <File Path="docs/usecases.md" />
+  </Folder>
+  <Folder Name="/docs/CopilotScripts/" />
+  <Folder Name="/docs/UseCases/" />
+  <Folder Name="/docs/UseCases/UC001/">
+    <File Path="docs/UseCases/UC001/Artifacts.md" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="CODE_OF_CONDUCT.md" />
