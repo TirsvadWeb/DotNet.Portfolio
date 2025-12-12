@@ -16,9 +16,25 @@
   - [Non-functional requirements](#non-functional-requirements)
   - [Notes](#notes)
 - [Use Case Casual](#use-case-casual)
-- [SD - Sequence Diagram](#sd---sequence-diagram)
-- [OC - Operations Contracts](#oc---operations-contracts)
-- [Related artifacts](#links-to-related-artifacts)
+- [System Sequence Diagram](#system-sequence-diagram)
+- [Operations Contracts](#operations-contracts)
+- [Related artifacts](#related-artifacts)
+
+---
+
+## Domain Model
+```mermaid
+classDiagram
+    class User {
+        Èmail
+        Certificate
+    }
+```
+
+---
+
+
+  
 
 ---
 
@@ -71,6 +87,22 @@ so that I can securely authenticate without using a password.
 
 ---
 
+## Workflow Diagram
+```mermaid
+flowchart TD
+    A[User navigates to web application] --> B[System requests client certificate]
+    B --> C{User provides certificate?}
+    C -- Yes --> D[System validates certificate]
+    D --> E{Certificate valid?}
+    E -- Yes --> F[System authenticates user]
+    F --> G[Establish authenticated session]
+    G --> H[Log authentication event]
+    E -- No --> I[Display error message: Invalid certificate]
+    C -- No --> J[Display error message: No certificate provided]
+```
+
+---
+
 ## Use Case Casual
 
 This casual (alternate) use case describes the two main outcomes when a user attempts to authenticate with a client certificate: success or failure.
@@ -109,7 +141,7 @@ Postconditions:
 
 ---
 
-## SSD - System Sequence Diagram
+## System Sequence Diagram
 ### Metadata
 | Element     | Description |
 |-------------|-------------|
@@ -120,24 +152,96 @@ Postconditions:
 ### Diagram
 ```mermaid
 sequenceDiagram
-  Actor User
-  participant System
+  participant User as "User (Actor)"
+  participant Browser as "Browser (Client TLS)"
+  participant Blazor as "Blazor WASM (UI/Presentation)"
+  participant API as "Backend API (Application Layer)"
+  participant AuthSvc as "Certificate Validation (Infrastructure)"
+  participant Identity as "Identity Store (Domain/Infrastructure)"
+  participant Audit as "Audit Log (Infrastructure)"
 
-  User->>System: Navigate to web application
-  System->>User: Request client certificate
-  User->>System: ValidateCertificate(certificate)
-  alt Valid Certificate
-    System->>User: Authenticate and establish session
-    System->>System: Log authentication event
-  else Invalid/No Certificate
-    System->>User: Deny authentication, display error message
-    System->>System: Log authentication failure
+  User->>Browser: Navigate to application URL
+  Browser->>Blazor: Load Blazor WASM app
+  Blazor->>API: Request protected resource / Authenticate
+  note right of API: TLS layer attempts to locate client certificate
+  Browser->>Browser: findDefaultCertificate() : X509Certificate?
+  alt default certificate found
+    Browser->>API: Present client certificate (TLS handshake)
+  else no default certificate
+    Browser->>User: promptSelectCertificate() : void
+    User->>Browser: selectCertificate(cert: X509Certificate) : void
+    Browser->>API: Present client certificate (TLS handshake)
   end
+  API->>AuthSvc: Validate certificate (chain, revocation, subject)
+  AuthSvc-->>API: Validation result
+  API->>Identity: Map certificate to user / fetch claims
+  Identity-->>API: User identity and claims
+  API->>Audit: Record authentication success/failure
+  API-->>Blazor: Return auth result / token
+  Blazor-->>Browser: Store token / establish session
 ```
 
 ---
 
-<!-- Links to related artifacts can be added here -->
-[TR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#technical-risk
-[OR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#operational-risk
-[LCR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#legal-and-compliance-risk
+## Operations Contracts
+| Element     | Description |
+|-------------|-------------|
+| ID          | UC001-OC    |
+| Title       | Sign in using a client certificate - Operations Contracts |
+| Cross reference | [UC001-SSD](#system-sequence-diagram) |
+| Operation | `AuthenticateUserWithClientCertificate()` |
+| Preconditions | - User has a valid client certificate installed in their browser/OS.<br/>- System is configured to accept client certificate authentication. |
+| Postconditions | - The user is authenticated and granted access to the web application.<br/>- An audit log entry is created for the authentication event. |
+
+---
+
+## Sequence Diagram
+### Metadata
+| Element     | Description |
+|-------------|-------------|
+| ID          | UC001-SD    |
+| Title       | Sign in using a client certificate - Sequence Diagram |
+| Cross reference | [UC001-SSD](#system-sequence-diagram) |
+
+### Diagram
+```mermaid
+sequenceDiagram
+  participant Browser as "Browser (Client TLS)"
+  participant Blazor as "Blazor WASM (UI/Presentation)"
+  participant API as "Backend API (Application Layer)"
+  participant AuthSvc as "Certificate Validation (Infrastructure)"
+  participant UserRepo as "UserRepository (IUserRepository / EF Core)"
+  participant Db as "ApplicationDbContext (EF Core)"
+  participant AuditRepo as "AuditRepository (EF Core)"
+
+  Browser->>Blazor: downloadWasm(bundleUrl: string) : void
+  Blazor->>API: POST /authenticate(payload: AuthRequest) : HttpResponse<AuthResult>
+  Browser->>Browser: findDefaultCertificate() : X509Certificate?
+  alt default certificate found
+    Browser->>API: tlsProvideCertificate(cert: X509Certificate) : TLSHandshakeResult
+  else no default certificate
+    Browser->>Browser: promptForCertificateSelection() : void
+    Browser->>Browser: selectCertificateFromStore() : X509Certificate
+    Browser->>API: tlsProvideCertificate(cert: X509Certificate) : TLSHandshakeResult
+  end
+  API->>AuthSvc: verifyCertificate(cert: X509Certificate) : ValidationResult
+  AuthSvc-->>API: ValidationResult(isValid: bool, reason?: string)
+  API->>UserRepo: FindByCertificateSubject(subject: string) : UserDto?
+  UserRepo->>Db: QueryUserBySubject(subject: string) : UserEntity?
+  Db-->>UserRepo: UserEntity?
+  alt user not found
+    UserRepo->>Db: CreateUser(entity: UserEntity) : UserEntity
+    Db-->>UserRepo: UserEntity(created)
+  end
+  UserRepo-->>API: UserDto(id: Guid, username: string, roles: string[])
+  API->>AuditRepo: RecordAuthEvent(event: AuthEvent) : void
+  API-->>Blazor: 200 OK (body: AuthResult { token: string }) : void
+  Blazor->>Browser: persistToken(token: string, storage: string) : void
+```
+
+---
+
+## Related artifacts
+- [TR001]: Technical Risk password phising
+- [OR001]: Operational Risk
+- [LCR001]: Legal and Compliance Risk
