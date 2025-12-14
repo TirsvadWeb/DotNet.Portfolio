@@ -1,4 +1,4 @@
-﻿[![downloads][downloads-shield]][downloads-url] [![Contributors][contributors-shield]][contributors-url] [![Forks][forks-shield]][forks-url] [![Stargazers][stars-shield]][stars-url] [![Issues][issues-shield]][issues-url] [![License][license-shield]][license-url] [![LinkedIn][linkedin-shield]][linkedin-url]
+[![downloads][downloads-shield]][downloads-url] [![Contributors][contributors-shield]][contributors-url] [![Forks][forks-shield]][forks-url] [![Stargazers][stars-shield]][stars-url] [![Issues][issues-shield]][issues-url] [![License][license-shield]][license-url] [![LinkedIn][linkedin-shield]][linkedin-url]
 
 # ![Logo][Logo] Portfolie
 A high‑performance portfolio application built with C# and WebAssembly, running entirely in the browser.
@@ -14,15 +14,62 @@ The application supports certificate-based login out of the box and is designed 
 
 Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
-- A valid client certificate (for login)
-- (Optional) A server or reverse proxy configured to request/require client certificates
 
 ### Clone the Repository
 
-```bash
-git clone https://github.com/TirsvadWeb/DotNet.Portfolio.git
-cd DotNet.Portfolio
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/TirsvadWeb/DotNet.Portfolio.git
+   cd DotNet.Portfolio
+   ```
+2. Build the application:
+   ```bash
+   dotnet build
+   ```
+3. Apply any pending database migrations:
+   ```bash
+   dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+   ``` 
+4. Run the application:
+   ```bash
+   dotnet run --project src/Portfolio/Portfolio
+   ```
+
+Add Database Migrations
 ```
+
+```bash
+# Create and apply separate migrations for Development and Production.
+# The migration files are added to the infrastructure project and the
+# startup project (which provides configuration/connection strings) is the
+# `src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
+# controls which environment configuration is used when creating/applying migrations.
+
+# Windows PowerShell
+# Development migration
+$Env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet ef migrations add InitialCreate.Development --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+
+# Production migration
+$Env:ASPNETCORE_ENVIRONMENT = 'Production'
+dotnet ef migrations add InitialCreate.Production --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+# Apply production migration (ensure startup project's configuration points to the production DB)
+dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+
+# Bash / macOS
+# Development migration
+ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add InitialCreate.Development --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+
+# Production migration
+ASPNETCORE_ENVIRONMENT=Production dotnet ef migrations add InitialCreate.Production --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+ASPNETCORE_ENVIRONMENT=Production dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+```
+
+<!-- Notes: keep secrets (connection strings, PFX passwords) out of source control; use user-secrets or environment variables -->
+
+---
 
 ### Configuration
 
@@ -41,16 +88,72 @@ Update your configuration file (e.g., appsettings.json, appsettings.Development.
 
 	- Import your client certificate into your browser or OS certificate store.
 
-Exact steps will depend on your hosting and environment. Add more specific instructions here based on how your project is set up.
+Create a development certificate named `TirsvadWebCert`
 
-### Build & Run
-```bash
-dotnet restore
-dotnet build
-dotnet run
+If you need a local development certificate named `TirsvadWebCert`, follow one of the options below. Replace passwords and file paths to match your environment and keep secrets out of source control.
+
+Windows (PowerShell, recommended for local dev):
+
+```powershell
+# Run in an elevated PowerShell if you plan to add to LocalMachine store
+$cert = New-SelfSignedCertificate -Subject "CN=TirsvadWebCert" -KeyExportPolicy Exportable -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(10)
+$pwd = ConvertTo-SecureString -String "changeit" -Force -AsPlainText
+Export-PfxCertificate -Cert $cert -FilePath "$env:USERPROFILE\TirsvadWebCert.pfx" -Password $pwd
+
+# (Optional) Get thumbprint
+Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -match "CN=TirsvadWebCert"} | Select-Object Thumbprint
+
+# (Optional) Install to LocalMachine if required by your host
+Import-PfxCertificate -FilePath "$env:USERPROFILE\TirsvadWebCert.pfx" -CertStoreLocation "Cert:\LocalMachine\My" -Password $pwd
 ```
 
-Then open your browser and navigate to the URL shown in the console (typically https://localhost:5001 or similar).
+macOS / Linux (mkcert + openssl):
+
+```bash
+# Using mkcert (recommended for developer trust)
+mkcert -install
+mkcert -cert-file TirsvadWebCert.pem -key-file TirsvadWebCert-key.pem localhost
+
+# Create a PFX for Kestrel if needed
+openssl pkcs12 -export -out TirsvadWebCert.pfx -inkey TirsvadWebCert-key.pem -in TirsvadWebCert.pem -passout pass:changeit
+```
+
+Trust the certificate in your browser / OS
+
+- On Windows, use `certmgr.msc` or the MMC Certificates snap-in to copy the certificate to `Trusted Root Certification Authorities` (only for local dev).
+- On macOS, add the certificate to Keychain and mark it as trusted.
+- `mkcert` automates trust for local development on macOS and Windows.
+
+Using the certificate with Kestrel
+
+- File-based configuration (add to `appsettings.Development.json`):
+
+```json
+{
+  "Kestrel": {
+    "Certificates": {
+      "Default": {
+        "Path": "C:\\Users\\<you>\\TirsvadWebCert.pfx",
+        "Password": "changeit"
+      }
+    }
+  }
+}
+```
+
+- Store-based (thumbprint):
+
+  1. Get the thumbprint (see PowerShell command above).
+  2. Configure your host to load the certificate by thumbprint from `CurrentUser` or `LocalMachine` store.
+
+Security notes
+
+- Never commit PFX files or passwords to source control. Use user secrets, environment variables, or your CI secret store for passwords and PFX paths.
+- Use stronger passwords and shorter validity if appropriate for your environment.
+
+Exact steps may vary with your OS and hosting environment. If you want, I can add a `scripts/` folder with PowerShell/mkcert helper scripts for this repository.
+
+---
 
 ## 🧑‍💼 Using the Portfolio
 Once running, you can:
@@ -59,6 +162,11 @@ Once running, you can:
 - Add projects: title, description, tech stack, links, screenshots
 - Optionally upload or link your CV (PDF or other supported format)
 - Share the URL with potential employers as your personal portfolio
+- On Windows, use `certmgr.msc` or the MMC Certificates snap-in to copy the certificate to `Trusted Root Certification Authorities` (only for local dev).
+- On macOS, add the certificate to Keychain and mark it as trusted.
+- `mkcert` automates trust for local development on macOS and Windows.
+
+---
 
 ## 🗺️ Roadmap / Future Ideas
 - [ ] v0.1 Basic profile with certificate login
@@ -88,10 +196,7 @@ Once running, you can:
 	- [ ] Comprehensive testing (unit, integration, e2e)
 	- [ ] Documentation and user guides
 	- [ ] Custom themes (light/dark)
-
-Feel free to open an issue or submit a feature request.
-For detailed tasks and progress, see the [GitHub Project Tasks][githubProjectTasks-url].
-
+ 
 <!-- LINK REFERENCES -->
 [contributors-shield]: https://img.shields.io/github/contributors/TirsvadWeb/DotNet.Portfolio?style=for-the-badge
 [contributors-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/graphs/contributors
@@ -109,6 +214,7 @@ For detailed tasks and progress, see the [GitHub Project Tasks][githubProjectTas
 
 [downloads-shield]: https://img.shields.io/github/downloads/TirsvadWeb/DotNet.Portfolio/total?style=for-the-badge
 [downloads-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/releases
+Exact steps may vary with your OS and hosting environment. If you want, I can add a `scripts/` folder with PowerShell/mkcert helper scripts for this repository.
 
 <!-- Github Links -->
 [githubIssue-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/issues/

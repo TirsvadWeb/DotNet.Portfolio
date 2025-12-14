@@ -1,6 +1,8 @@
+using Portfolio.Domain.Abstracts;
+
 namespace Portfolio.Domain.Entities;
 
-public class ClientCertificate
+public class ClientCertificate : IEntity
 {
     public Guid Id { get; set; } = Guid.Empty;
     public string Subject { get; set; } = string.Empty;
