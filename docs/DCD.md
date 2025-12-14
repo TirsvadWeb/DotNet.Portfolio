@@ -19,14 +19,16 @@ classDiagram
 
   namespace  Domain.Entities {
 
-    class UserEntity {
+    class User {
       +guid Id
+      +guid ClientCertificateId
       +string Email
-      +X509Certificate Certificate
       +isActive: bool
+      +virtual ClientCertificate ClientCertificate
     }
 
-    class CertificateEntity {
+    class ClientCertificate {
+      +guid Id
       +string Subject
       +string Issuer
       +DateTime ValidFrom
@@ -83,14 +85,15 @@ classDiagram
   }
 
   %% Composition
-  UserEntity "1" o-- "0..1" CertificateEntity : has a
+  User "1" o-- "0..1" ClientCertificate : has a
 
   %% Associations
-  UserRepository --* UserEntity : manages
+  UserRepository --* User : manages
 
   %% Inheritance
-  UserEntity --|> IEntityBase : inherits
-  UserRepository --|> RepositoryBase~UserEntity~ : inherits
+  User --|> IEntityBase : inherits
+  ClientCertificate --|> IEntityBase : inherits
+  UserRepository --|> RepositoryBase~User~ : inherits
 
   %% Implementation
   RepositoryBase~T~ --|> IRepository~T~ : implements

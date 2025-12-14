@@ -6,7 +6,10 @@
     <File Path="docs/scenarios.md" />
     <File Path="docs/usecases.md" />
   </Folder>
-  <Folder Name="/docs/CopilotScripts/" />
+  <Folder Name="/docs/CopilotScripts/">
+    <File Path="docs/CopilotScripts/mstest.md" />
+    <File Path="docs/CopilotScripts/xmlDocumentation.md" />
+  </Folder>
   <Folder Name="/docs/UseCases/" />
   <Folder Name="/docs/UseCases/UC001/">
     <File Path="docs/UseCases/UC001/Artifacts.md" />
@@ -16,6 +19,12 @@
     <File Path="CODE_OF_CONDUCT.md" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/Portfolio.Core.Tests/Portfolio.Core.Tests.csproj" Id="a3be8fa4-e1fa-4d31-a182-882a16107240" />
+  </Folder>
+  <Project Path="src/Portfolio.Core/Portfolio.Core.csproj" Id="2605f8bd-31da-43a3-ad4c-bf327d3a330e" />
+  <Project Path="src/Portfolio.Domain/Portfolio.Domain.csproj" Id="c93a2278-1082-4013-9cc9-d96b5810e319" />
+  <Project Path="src/Portfolio.Infrastructure/Portfolio.Infrastructure.csproj" Id="f791fe0a-5961-4dc7-8169-7953bfe84450" />
   <Project Path="src/Portfolio/Portfolio.Client/Portfolio.Client.csproj" Id="2c0653be-0ab6-4d7c-926f-4bffc2d36d47" />
   <Project Path="src/Portfolio/Portfolio/Portfolio.csproj" Id="7004b4fa-2ec4-44fb-91b7-b9313a3977f9" />
 </Solution>
