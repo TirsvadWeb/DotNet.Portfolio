@@ -1,6 +1,7 @@
 using Portfolio.Core.Abstracts;
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Portfolio.Core.Services;
@@ -10,37 +11,60 @@ namespace Portfolio.Core.Services;
 /// certificates from the current user's certificate store.
 /// </summary>
 /// <remarks>
-/// This class demonstrates the use of XML documentation inheritance using
-/// <c>&lt;inheritdoc/&gt;</c> on implementing members. Use <c>&lt;inheritdoc/&gt;</c>
-/// to inherit the interface's documentation so that the documentation is:
-/// - DRY (Declared once on the interface),
-/// - Consistent between contract and implementation, and
-/// - Automatically merged by IDEs and documentation generators.
+/// This class is an implementation of the <see cref="IX509CertificateService"/>
+/// contract. Several members use the XML documentation tag `<inheritdoc/>` to
+/// inherit documentation from that interface. Using `<inheritdoc/>` keeps
+/// documentation consistent and DRY (Don't Repeat Yourself): update the
+/// interface docs once and implementations automatically surface the same
+/// guidance in generated API docs and IDE tooltips.
 /// 
-/// How to use <c>&lt;inheritdoc/&gt;</c>:
-/// - Place <c>&lt;inheritdoc/&gt;</c> above the implementing member (method/property).
-/// - Ensure the interface member contains the authoritative documentation.
+/// How to use `<inheritdoc/>`:
+/// - Add `<inheritdoc/>` to a member's XML doc when that member implements an
+///   interface member or overrides a base member that already has complete
+///   documentation. The compiler and doc generators will copy the base/member
+///   documentation into the implementation's docs.
+/// - This is particularly useful for implementations that don't need different
+///   behavioral documentation than the interface contract.
 /// 
-/// Example:
-/// <code>
-/// var svc = new X509CertificateService();
-/// var cert = svc.GetPreloadedCertificate();
+/// Why we have it:
+/// - Reduces duplication across interface and implementation documentation.
+/// - Ensures consumers see the authoritative contract documentation whether
+///   they inspect the interface or concrete type.
+/// 
+/// <example>
+/// Example usage (consumer code):
+/// <code language="csharp"><![CDATA[
+/// IX509CertificateService svc = new X509CertificateService();
+/// // The documentation for GetCertificateByName is inherited from the
+/// // IX509CertificateService interface via <inheritdoc/> on the implementing
+/// // member in this class. Consumers will see the interface summary here.
+/// var cert = svc.GetCertificateByName("MyCertSubjectOrFriendlyName");
 /// if (cert != null)
 /// {
-///     // use certificate, for example to configure a TLS handler
+///     Console.WriteLine($"Found cert thumbprint: {cert.Thumbprint}");
 /// }
-/// 
-/// // Or look up by subject name:
-/// var named = svc.GetCertificateByName("TirsvadWebCert");
-/// </code>
+/// ]]></code>
+/// </example>
 /// </remarks>
 public class X509CertificateService : IX509CertificateService
 {
     // Predefined certificate subject/friendly name
     private const string PredefinedCertName = "TirsvadWebCert";
 
-    // Simple in-memory cache to avoid repeated expensive store enumerations for hot lookups
-    private static readonly ConcurrentDictionary<string, X509Certificate2?> _cache = new(StringComparer.OrdinalIgnoreCase);
+    // Small immutable DTO stored in the cache to minimize memory and allocations on the hot path.
+    private sealed record CertificateCacheEntry(
+        string Thumbprint,
+        DateTime NotAfter,
+        bool HasPrivateKey,
+        byte[]? PfxExport);
+
+    // Inline: cache uses ConcurrentDictionary with nullable values to represent
+    // a positive cache entry (`CertificateCacheEntry`) or a negative cache (null).
+    // Use a case-insensitive comparer so callers need not worry about casing.
+    private readonly ConcurrentDictionary<string, CertificateCacheEntry?> _cache = new(StringComparer.OrdinalIgnoreCase);
+
+    // Inline: guard dictionary used to prevent duplicate concurrent validations per subject.
+    private readonly ConcurrentDictionary<string, byte> _validationRunning = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
     public X509Certificate2? GetPreloadedCertificate()
@@ -57,48 +81,77 @@ public class X509CertificateService : IX509CertificateService
         }
 
         // Check cache first
-        if (_cache.TryGetValue(subjectName, out X509Certificate2? cached))
+        if (_cache.TryGetValue(subjectName, out CertificateCacheEntry? cached))
         {
-            // Validate cached entry is still present in the store. Certificates
-            // may be removed externally; returning a stale cached certificate
-            // causes callers to observe certificates that no longer exist.
+            Debug.WriteLine($"GetCertificateByName: cache hit for '{subjectName}'. Cached is null: {cached == null}");
             if (cached != null)
             {
+                // If we cached export bytes, validate presence in the store before reconstructing.
+                if (cached.PfxExport != null)
+                {
+                    Debug.WriteLine($"GetCertificateByName: cached export present for '{subjectName}', validating presence in store before returning reconstructed cert.");
+                    try
+                    {
+                        using X509Store validateStore = new(StoreName.My, StoreLocation.CurrentUser);
+                        validateStore.Open(OpenFlags.ReadOnly);
+                        X509Certificate2Collection found = validateStore.Certificates.Find(X509FindType.FindByThumbprint, cached.Thumbprint, validOnly: false);
+                        Debug.WriteLine($"GetCertificateByName: validate store find returned {(found?.Count ?? 0)} results for thumb {cached.Thumbprint}.");
+                        if (found != null && found.Count > 0)
+                        {
+                            try
+                            {
+                                // Reconstruct from PFX export so callers receive an independent instance.
+                                X509Certificate2 rs1 = X509CertificateLoader.LoadCertificate(cached.PfxExport!);
+                                return rs1;
+                            }
+                            catch
+                            {
+                                // If reconstruction fails, remove the cache entry and fall through to fresh lookup
+                                _cache.TryRemove(subjectName, out _);
+                            }
+                        }
+                        else
+                        {
+                            _cache.TryRemove(subjectName, out _);
+                        }
+                    }
+                    catch
+                    {
+                        // If store access fails, remove cache entry to avoid returning stale certs and continue to fresh lookup
+                        _cache.TryRemove(subjectName, out _);
+                    }
+                }
+
+                Debug.WriteLine($"GetCertificateByName: cached entry present for '{subjectName}' but no cached export - validating in store.");
                 try
                 {
                     using X509Store validateStore = new(StoreName.My, StoreLocation.CurrentUser);
                     validateStore.Open(OpenFlags.ReadOnly);
                     X509Certificate2Collection found = validateStore.Certificates.Find(X509FindType.FindByThumbprint, cached.Thumbprint, validOnly: false);
+                    Debug.WriteLine($"GetCertificateByName: validate store find returned {(found?.Count ?? 0)} results for thumb {cached.Thumbprint}.");
                     if (found != null && found.Count > 0)
                     {
-                        return new X509Certificate2(cached);
+                        return new X509Certificate2(found[0]);
                     }
                     else
                     {
-                        // Stale cache, remove and fall through to fresh lookup
                         _cache.TryRemove(subjectName, out _);
                     }
                 }
                 catch
                 {
-                    // If we cannot access the store for validation, fall back to
-                    // returning the cached copy to be tolerant. This preserves the
-                    // previous behavior in restricted environments.
-                    return new X509Certificate2(cached);
+                    // If store access fails and we couldn't reconstruct earlier, remove cache entry and continue.
+                    _cache.TryRemove(subjectName, out _);
                 }
             }
             else
             {
-                // If the cache contains a negative result (null), it may be stale because
-                // certificates can be re-added. Remove the negative cache and perform
-                // a fresh lookup so newly added certificates are discovered.
                 _cache.TryRemove(subjectName, out _);
             }
         }
 
         try
         {
-            // Use a using block so the store is disposed quickly.
             using X509Store store = new(StoreName.My, StoreLocation.CurrentUser);
             try
             {
@@ -106,10 +159,9 @@ public class X509CertificateService : IX509CertificateService
 
                 // Optimized lookup: use the built-in Find API instead of enumerating every certificate.
                 X509Certificate2Collection found = store.Certificates.Find(X509FindType.FindBySubjectName, subjectName, validOnly: false);
+                Debug.WriteLine($"GetCertificateByName: fresh lookup by subject '{subjectName}' returned {(found?.Count ?? 0)} results.");
 
-                // If FriendlyName matching is required (friendly name is not part of FindBySubjectName),
-                // check for explicit friendly name matches first.
-                List<X509Certificate2> candidates = [];
+                List<X509Certificate2> candidates = new();
 
                 if (found != null && found.Count > 0)
                 {
@@ -120,7 +172,6 @@ public class X509CertificateService : IX509CertificateService
                 // (this is typically fast since we only iterate the small result set when Find returned nothing)
                 if (candidates.Count == 0)
                 {
-                    // Fall back to enumerating but restrict to a quick projection to avoid expensive allocations.
                     foreach (X509Certificate2 c in store.Certificates)
                     {
                         if (!string.IsNullOrWhiteSpace(c.FriendlyName) && string.Equals(c.FriendlyName, subjectName, StringComparison.OrdinalIgnoreCase))
@@ -134,6 +185,7 @@ public class X509CertificateService : IX509CertificateService
                 {
                     // Cache miss -> cache negative result to avoid repeated full scans
                     _cache[subjectName] = null;
+                    Debug.WriteLine($"GetCertificateByName: no candidates found for '{subjectName}' - caching negative result.");
                     return null;
                 }
 
@@ -145,11 +197,23 @@ public class X509CertificateService : IX509CertificateService
 
                 if (best != null)
                 {
-                    // Return a copy so the caller isn't tied to the store's lifetime
-                    var result = new X509Certificate2(best);
-                    // Cache the certificate instance for subsequent fast lookups
-                    _cache[subjectName] = new X509Certificate2(best);
-                    return result;
+                    // Attempt to export a PFX payload for quick reconstruction on the hot path.
+                    byte[]? export = null;
+                    try
+                    {
+                        // Export may fail for non-exportable keys; swallow errors and continue without export.
+                        export = best.Export(X509ContentType.Pfx, string.Empty);
+                        Debug.WriteLine($"GetCertificateByName: export succeeded for '{subjectName}', size={export?.Length ?? 0}.");
+                    }
+                    catch { Debug.WriteLine($"GetCertificateByName: export failed for '{subjectName}'."); }
+
+                    // Cache a small immutable DTO with optional exported bytes.
+                    CertificateCacheEntry entry = new(best.Thumbprint, best.NotAfter, best.HasPrivateKey, export);
+                    _cache[subjectName] = entry;
+                    Debug.WriteLine($"GetCertificateByName: cached entry for '{subjectName}' (HasExport={(export != null)}).");
+
+                    // NOTE: reconstructing from export so returned instance is independent of the store
+                    return export != null ? new X509Certificate2(export) : new X509Certificate2(best);
                 }
             }
             finally

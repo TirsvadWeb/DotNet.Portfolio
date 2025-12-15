@@ -35,16 +35,14 @@ Prerequisites
    dotnet run --project src/Portfolio/Portfolio
    ```
 
-Add Database Migrations
-```
+### Add Database Migrations
+Create and apply separate migrations for Development and Production.
+The migration files are added to the infrastructure project and the
+startup project (which provides configuration/connection strings) is the
+`src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
+controls which environment configuration is used when creating/applying migrations.
 
-```bash
-# Create and apply separate migrations for Development and Production.
-# The migration files are added to the infrastructure project and the
-# startup project (which provides configuration/connection strings) is the
-# `src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
-# controls which environment configuration is used when creating/applying migrations.
-
+```powershell
 # Windows PowerShell
 # Development migration
 $Env:ASPNETCORE_ENVIRONMENT = 'Development'
