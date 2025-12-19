@@ -22,15 +22,34 @@ Prerequisites
    git clone https://github.com/TirsvadWeb/DotNet.Portfolio.git
    cd DotNet.Portfolio
    ```
-2. Build the application:
+
+2. Build the application (optional if you plan to run with Docker):
    ```bash
    dotnet build
    ```
-3. Apply any pending database migrations:
+
+3. Run with Docker (recommended)
+
+   If the repository contains a `docker-compose.yml` at the repository root you can build and run all services with:
+   ```bash
+   docker compose up --build
+   ```
+
+   If there is no `docker-compose.yml`, build and run the Portfolio project image directly (adjust the path if your Dockerfile is located elsewhere):
+   ```bash
+   docker build -t tirsvadweb.portfolio ./src/Portfolio/Portfolio
+   docker run --rm -p 5000:80 -e ASPNETCORE_ENVIRONMENT=Production tirsvadweb.portfolio
+   ```
+
+   Notes:
+   - Adjust ports and environment variables to match your configuration.
+   - If you prefer to run locally without Docker, continue with the `dotnet run` instructions below.
+
+4. Apply any pending database migrations:
    ```bash
    dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
    ``` 
-4. Run the application:
+5. Run the application (when not using Docker):
    ```bash
    dotnet run --project src/Portfolio/Portfolio
    ```
@@ -208,7 +227,7 @@ Once running, you can:
 [license-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/jens-tirsvad-nielsen-13b795b9/
-[logo]: https://raw.githubusercontent.com/TirsvadWeb/DotNet.Portfolio/main/images/logo/32x32/logo.png
+[logo]: https://raw.githubusercontent.com/TirsvadCLI/Logo/main/images/logo/32x32/logo.png "Logo"
 
 [downloads-shield]: https://img.shields.io/github/downloads/TirsvadWeb/DotNet.Portfolio/total?style=for-the-badge
 [downloads-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/releases
