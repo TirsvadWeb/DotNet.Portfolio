@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 
 using Portfolio.Components;
 using Portfolio.Components.Account;
@@ -13,6 +14,7 @@ using Portfolio.Infrastructure.Persistents;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
+using System.IO;
 
 namespace Portfolio;
 
@@ -21,6 +23,27 @@ public class Program
     public static void Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        // Configure data protection key persistence so keys survive process/container restarts.
+        // Path can be overridden by configuration: "DataProtection:KeyPath" (useful for Docker volumes).
+        string? dpPath = builder.Configuration["DataProtection:KeyPath"] ?? builder.Configuration["DataProtection__KeyPath"];
+        if (string.IsNullOrWhiteSpace(dpPath))
+        {
+            dpPath = Path.Combine(builder.Environment.ContentRootPath, "keys");
+        }
+
+        try
+        {
+            Directory.CreateDirectory(dpPath!);
+            builder.Services.AddDataProtection()
+                .SetApplicationName("Portfolio")
+                .PersistKeysToFileSystem(new DirectoryInfo(dpPath!));
+        }
+        catch (Exception ex)
+        {
+            // Surface an explicit error so Docker / logs show why keys aren't persisted.
+            Console.Error.WriteLine($"WARNING: Failed to persist data-protection keys to '{dpPath}'. Falling back to in-memory key ring. Ensure the path is mounted and writable. Exception: {ex.Message}");
+        }
 
         // Add services to the container.
         builder.Services.AddRazorComponents()
@@ -56,7 +79,29 @@ public class Program
         }
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-        app.UseHttpsRedirection();
+
+        // Only enable HTTPS redirection if an HTTPS endpoint is configured.
+        // This avoids the runtime warning when the container is serving HTTP only (common in Docker setups).
+        bool httpsConfigured = false;
+        string? httpsPortEnv = builder.Configuration["ASPNETCORE_HTTPS_PORT"];
+        string? aspnetcoreUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? builder.Configuration["ASPNETCORE_URLS"];
+        if (!string.IsNullOrWhiteSpace(httpsPortEnv))
+        {
+            httpsConfigured = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(aspnetcoreUrls) && aspnetcoreUrls.IndexOf("https", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            httpsConfigured = true;
+        }
+
+        if (httpsConfigured)
+        {
+            app.UseHttpsRedirection();
+        }
+        else
+        {
+            Console.WriteLine("INFO: HTTPS endpoint not detected; skipping UseHttpsRedirection to avoid redirect warnings.");
+        }
 
         app.UseAntiforgery();
 
@@ -78,7 +123,7 @@ public class Program
             try
             {
                 IX509CertificateService? certService = context.RequestServices.GetService<IX509CertificateService>();
-                X509Certificate2? cert = certService?.GetPreloadedCertificate();
+                X509Certificate2? cert = certService?.GetPreloadedCertificateAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 if (cert != null)
                 {
                     context.Items["PreloadedX509Certificate"] = cert;
@@ -110,13 +155,13 @@ public class Program
                                 }
                             }
 
-                            List<Claim> claims = new()
-                            {
+                            List<Claim> claims =
+                            [
                                 new Claim(ClaimTypes.Name, cert.Subject ?? string.Empty),
                                 new Claim("thumbprint", cert.Thumbprint ?? string.Empty),
                                 new Claim("issuer", cert.Issuer ?? string.Empty),
                                 new Claim("serialNumber", cert.SerialNumber ?? string.Empty)
-                            };
+                            ];
 
                             ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                             ClaimsPrincipal principal = new(identity);
@@ -150,8 +195,6 @@ public class Program
             .AddInteractiveServerRenderMode()
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
-
-
 
         app.Run();
     }

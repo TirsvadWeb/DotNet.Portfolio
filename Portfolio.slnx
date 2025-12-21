@@ -17,7 +17,18 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
+    <File Path="LICENSE" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/docker/">
+    <File Path="docker/entrypoint.sh" />
+    <File Path="docker/run_tests.sh" />
+  </Folder>
+  <Folder Name="/Solution Items/docker/nginx/">
+    <File Path="docker/nginx/default.conf" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/Portfolio.Core.Tests/Portfolio.Core.Tests.csproj" Id="a3be8fa4-e1fa-4d31-a182-882a16107240" />

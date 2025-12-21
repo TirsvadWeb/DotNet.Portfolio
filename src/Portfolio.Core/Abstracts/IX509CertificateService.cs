@@ -41,24 +41,25 @@ namespace Portfolio.Core.Abstracts;
 public interface IX509CertificateService
 {
     /// <summary>
-    /// Returns the predefined certificate if found, otherwise <c>null</c>.
-    /// </summary>
-    /// <returns>The predefined certificate or <c>null</c>.</returns>
-    /// <remarks>
-    /// Implementations may use <c>&lt;inheritdoc/&gt;</c> to inherit this
-    /// documentation on the concrete member.
-    /// </remarks>
-    X509Certificate2? GetPreloadedCertificate();
-
-    /// <summary>
-    /// Attempts to find a certificate by subject name and returns it or <c>null</c>.
+    /// Asynchronously attempts to find a certificate by subject name and returns it or <c>null</c>.
     /// </summary>
     /// <param name="subjectName">The subject name of the certificate to find.</param>
-    /// <returns>The found certificate or <c>null</c>.</returns>
+    /// <returns>A task that completes with the found certificate or <c>null</c>.</returns>
     /// <remarks>
-    /// Use <c>&lt;inheritdoc/&gt;</c> on the implementing method to inherit this
-    /// description and keep documentation consistent.
+    /// This asynchronous variant performs the same work as <see cref="GetCertificateByName"/>
+    /// but returns a <see cref="Task{TResult}"/> so callers can avoid blocking the calling thread.
+    /// Implementations may offload blocking store I/O to a background thread.
     /// </remarks>
-    X509Certificate2? GetCertificateByName(string subjectName);
+    Task<X509Certificate2?> GetCertificateByNameAsync(string subjectName);
+
+    /// <summary>
+    /// Asynchronously returns the predefined certificate if found, otherwise <c>null</c>.
+    /// </summary>
+    /// <returns>A task that completes with the predefined certificate or <c>null</c>.</returns>
+    /// <remarks>
+    /// Prefer callers use this asynchronous variant to avoid blocking threads when the
+    /// underlying certificate store I/O may be slow.
+    /// </remarks>
+    Task<X509Certificate2?> GetPreloadedCertificateAsync();
 
 }

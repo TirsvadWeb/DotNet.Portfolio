@@ -1,0 +1,62 @@
+services:
+  # This helper service will run the build stage from Dockerfile and copy
+  # the produced /artifacts out into the host-mounted ./artifacts folder. The
+  # service runs to completion and the publish-stage will be configured to
+  # wait for it to complete successfully before starting.
+
+  build-stage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        CONFIGURATION: Release
+    # This job only builds and produces artifacts under ./artifacts
+    restart: "no"
+
+  tests-stage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test-runner
+      args:
+        CONFIGURATION: Release
+    depends_on:
+      build-stage:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - ./TestResults:/artifacts/TestResults
+
+    environment:
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+    restart: "no"
+    # The Dockerfile.tests CMD will restore (if needed) and run tests using the mounted workspace
+
+  publish-stage:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        CONFIGURATION: Release
+    depends_on:
+      tests-stage:
+        condition: service_completed_successfully
+    ports:
+      - "80:80"
+      - "443:443"
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=Data/portfolio.db;Cache=Shared;Mode=ReadWriteCreate;Foreign Keys=True
+      - DataProtection__KeyPath=/app/keys
+    restart: unless-stopped
+    volumes:
+      - sqlite_data:/app/Data
+      - ./keys:/app/keys
+
+volumes:
+  sqlite_data: {}
+

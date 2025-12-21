@@ -3,6 +3,17 @@
 # ![Logo][Logo] Portfolie
 A high‑performance portfolio application built with C# and WebAssembly, running entirely in the browser.
 
+## Table of Contents
+- [Features](#features)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Clone the Repository](#clone-the-repository)
+  - [Run the Application](#run-the-application)
+  - [Add Database Migrations](#add-database-migrations)
+- [Configuration](#configuration)
+- [Using the Portfolio](#using-the-portfolio)
+- [Roadmap / Future Ideas](#roadmap--future-ideas)
+
 The project is primarily aimed at software engineers who want to showcase their work to potential employers, but it is flexible enough to be adapted for other professions as well (designers, data specialists, etc.).
 The application supports certificate-based login out of the box and is designed so that additional authentication methods can be added in the future if requested.
 
@@ -14,6 +25,7 @@ The application supports certificate-based login out of the box and is designed 
 
 Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [Docker](https://www.docker.com/get-started) (optional, but recommended for easier setup)
 
 ### Clone the Repository
 
@@ -22,29 +34,45 @@ Prerequisites
    git clone https://github.com/TirsvadWeb/DotNet.Portfolio.git
    cd DotNet.Portfolio
    ```
-2. Build the application:
+
+2. Build the application (optional if you plan to run with Docker):
    ```bash
    dotnet build
    ```
-3. Apply any pending database migrations:
+
+### Run the Application
+
+1. Run with Docker (recommended)
+
+   If the repository contains a `docker-compose.yml` at the repository root you can build and run all services with:
+   ```bash
+   docker compose up --build
+   ```
+
+   Notes:
+   - Adjust ports and environment variables to match your configuration.
+   - If you prefer to run locally without Docker, continue with the `dotnet run` instructions below.
+
+### Alternatively, run locally without Docker
+
+1. Apply any pending database migrations:
    ```bash
    dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
    ``` 
-4. Run the application:
+
+2. Run the application (when not using Docker):
    ```bash
    dotnet run --project src/Portfolio/Portfolio
    ```
 
-Add Database Migrations
-```
+### Add Database Migrations
+Create and apply separate migrations for Development and Production.
+The migration files are added to the infrastructure project and the
+startup project (which provides configuration/connection strings) is the
+`src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
+controls which environment configuration is used when creating/applying migrations.
 
-```bash
-# Create and apply separate migrations for Development and Production.
-# The migration files are added to the infrastructure project and the
-# startup project (which provides configuration/connection strings) is the
-# `src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
-# controls which environment configuration is used when creating/applying migrations.
-
+```powershell
 # Windows PowerShell
 # Development migration
 $Env:ASPNETCORE_ENVIRONMENT = 'Development'
@@ -210,7 +238,7 @@ Once running, you can:
 [license-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/jens-tirsvad-nielsen-13b795b9/
-[logo]: https://raw.githubusercontent.com/TirsvadWeb/DotNet.Portfolio/main/images/logo/32x32/logo.png
+[logo]: https://raw.githubusercontent.com/TirsvadCLI/Logo/main/images/logo/32x32/logo.png "Logo"
 
 [downloads-shield]: https://img.shields.io/github/downloads/TirsvadWeb/DotNet.Portfolio/total?style=for-the-badge
 [downloads-url]: https://github.com/TirsvadWeb/DotNet.Portfolio/releases
