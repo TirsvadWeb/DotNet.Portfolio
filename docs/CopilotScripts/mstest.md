@@ -10,5 +10,5 @@ test for threadsafe
 test for performance
 test for multi session
 
-group test benchmark and functional test
+group test benchmark, Concurrency and functional test
 ```
