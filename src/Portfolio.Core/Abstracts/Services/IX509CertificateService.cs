@@ -1,6 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 
-namespace Portfolio.Core.Abstracts;
+namespace Portfolio.Core.Abstracts.Services;
 
 // Inline comment: Prefer using <inheritdoc/> on implementing members so they inherit the interface documentation.
 /// <summary>
@@ -40,6 +40,8 @@ namespace Portfolio.Core.Abstracts;
 /// </example>
 public interface IX509CertificateService
 {
+    Task<X509Certificate2?> CreateCertificateAsync(string subjectName);
+
     /// <summary>
     /// Asynchronously attempts to find a certificate by subject name and returns it or <c>null</c>.
     /// </summary>
@@ -55,11 +57,14 @@ public interface IX509CertificateService
     /// <summary>
     /// Asynchronously returns the predefined certificate if found, otherwise <c>null</c>.
     /// </summary>
+    /// <param name="predefinedCertName">
+    /// The name of the predefined certificate to retrieve.
+    /// If <c>null</c>, a default predefined certificate is returned.
+    /// </param>
     /// <returns>A task that completes with the predefined certificate or <c>null</c>.</returns>
     /// <remarks>
     /// Prefer callers use this asynchronous variant to avoid blocking threads when the
     /// underlying certificate store I/O may be slow.
     /// </remarks>
-    Task<X509Certificate2?> GetPreloadedCertificateAsync();
-
+    Task<X509Certificate2?> GetPreloadedCertificateAsync(string? predefinedCertName = null);
 }

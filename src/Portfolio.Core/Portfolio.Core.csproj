@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Portfolio.Core.Abstracts\IClientCertificateRepository.cs" Link="Abstracts\IClientCertificateRepository.cs" />
+    <Compile Include="..\Portfolio.Core.Abstracts\IClientCertificateRepository.cs" Link="Abstracts\Repositories\IClientCertificateRepository.cs" />
   </ItemGroup>
 
   <ItemGroup>

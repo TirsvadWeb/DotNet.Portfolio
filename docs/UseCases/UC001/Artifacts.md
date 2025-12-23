@@ -6,6 +6,7 @@
 | Level       | User Goal   |
 
 ## Table of Contents
+- [Domain Model](#domain-model)
 - [User Story](#user-story)
 - [Use Case Brief](#use-case-brief)
   - [Primary Actor](#primary-actor)
@@ -18,6 +19,9 @@
 - [Use Case Casual](#use-case-casual)
 - [System Sequence Diagram](#system-sequence-diagram)
 - [Operations Contracts](#operations-contracts)
+- [Sequence Diagram](#sequence-diagram)
+- [DCD](#dcd)
+- [ER Diagram](#er-diagram)
 - [Related artifacts](#related-artifacts)
 
 ---
@@ -38,17 +42,17 @@ The maintained Domain Model can be found [here][DM].
 classDiagram
     class User {
         Email
-        Is Active
     }
 
     class ClientCertificate {
         Subject
         Issuer
-        Valid From
-        Valid To
-        Serial Number
+        "Valid From"
+        "Valid To"
+        SerialNumber
     }
 
+    %% Relations
     User "1" o-- "0..1" ClientCertificate : has a
 ```
 
@@ -258,7 +262,8 @@ sequenceDiagram
 ---
 
 ## DCD
-This is an initial version of the Domain Class Diagram (DCD) for the use case "Sign in using a client certificate". It captures the key entities, their attributes, and relationships relevant to the authentication process using client certificates.
+Domain Class Diagram (DCD) for the use case "Sign in using a client certificate".
+It captures the key entities, their attributes, and relationships relevant to the authentication process using client certificates.
 The maintained DCD can be found [here][DCD].
 
 ### Metadata
@@ -266,11 +271,13 @@ The maintained DCD can be found [here][DCD].
 |-------------|-------------|
 | ID          | UC001-DCD   |
 | Title       | Sign in using a client certificate - Domain Class Diagram |
+| Cross reference | [Domain Model](#domain-model)<br/> |
 
-### Diagram
+### UC001 Domain Class Diagram
+This diagram shows the application domain entities and how they integrate with the Identity model for the UC001 use case.
+
 ```mermaid
 classDiagram
-
   namespace Domain.Abstracts {
     class IEntityBase {
       <<interface>>
@@ -278,16 +285,14 @@ classDiagram
     }
   }
 
-  namespace  Domain.Entities {
-
-    class UserEntity {
+  namespace Domain.Entities {
+    class ApplicationUser {
       +guid Id
-      +string Email
       +X509Certificate Certificate
-      +isActive: bool
+      -- extends Identity user for authentication/authorization --
     }
 
-    class CertificateEntity {
+    class Certificate {
       +string Subject
       +string Issuer
       +DateTime ValidFrom
@@ -297,8 +302,6 @@ classDiagram
   }
 
   namespace Core.Abstracts {
-    
-    %% Repositories
     class IRepository~T~ {
       <<interface>>
       +GetByIdAsync(Guid id) Task~TEntity~
@@ -308,15 +311,15 @@ classDiagram
       +DeleteAsync(Guid id) Task
     }
 
-    class IUserRepository {
+    class IApplicationUserRepository {
       <<interface>>
+      +FindByCertificateSubject(subject: string): ApplicationUser?
     }
 
     class IAuthenticationService {
       <<interface>>
       +AuthenticateUserWithClientCertificate(cert: X509Certificate): AuthResult
     }
-
   }
 
   namespace Core.DTOs {
@@ -336,60 +339,57 @@ classDiagram
     class RepositoryBase~T~ {
     }
 
-    class UserRepository {
-      +FindByCertificateSubject(subject: string): UserEntity?
-      +CreateUser(entity: UserEntity): UserEntity
+    class ApplicationUserRepository {
+      +FindByCertificateSubject(subject: string): ApplicationUser?
+      +CreateUser(entity: ApplicationUser): ApplicationUser
     }
   }
-
-  namespace Portfolio.Client {
-    class Todo {
-    }
-  }
-
-  namespace Portfolio.Server {
-    class Login {
-
-    }
-  }
-
 
   %% Composition
-  UserEntity "1" o-- "0..1" CertificateEntity : has a
+  ApplicationUser "1" o-- "0..1" Certificate : has a
 
   %% Associations
-  UserRepository --* UserEntity : manages
+  ApplicationUserRepository --* ApplicationUser : manages
 
   %% Inheritance
-  UserEntity --|> IEntityBase : inherits
-  UserRepository --|> RepositoryBase~UserEntity~ : inherits
+  ApplicationUser --|> Domain.Abstracts.IEntityBase : inherits
+  ApplicationUserRepository --|> Infrastructure.Repositories.RepositoryBase~ApplicationUser~ : inherits
+
+  %% Identity integration (reference to Identity model in the Identity diagram)
+  ApplicationUser --|> Identity.IdentityUser : extends
+  Identity.IdentityUser --* Identity.IdentityUserRole : has many
 
   %% Implementation
-  RepositoryBase~T~ --|> IRepository~T~ : implements
-  IUserRepository --|> IRepository~UserEntity~ : implements
-  UserRepository --|> IUserRepository : implements
-  AuthenticationService --|> IAuthenticationService : implements
+  Infrastructure.Repositories.RepositoryBase~T~ --|> Core.Abstracts.IRepository~T~ : implements
+  Core.Abstracts.IApplicationUserRepository --|> Core.Abstracts.IRepository~ApplicationUser~ : implements
+  Infrastructure.Repositories.ApplicationUserRepository --|> Core.Abstracts.IApplicationUserRepository : implements
+  Core.Services.AuthenticationService --|> Core.Abstracts.IAuthenticationService : implements
 ```
+
+### Diagram Indentity Model
+[microsoft-identity-abstractions-for-dotnet]
 
 ---
 
 ## ER Diagram
+
 ### Metadata
+
 | Element     | Description |
 |-------------|-------------|
 | ID          | UC001-ERD   |
 | Title       | Sign in using a client certificate - ER Diagram |
+
 ### Diagram
+
 ```mermaid
 erDiagram
-    User {
+    ApplicationUsers {
         GUID Id PK
         GUID ClientCertificateId FK
-        STRING Email "Unique"
-        BOOLEAN IsActive
     }
 
-    ClientCertificate {
+    ClientCertificates {
         GUID Id PK
         STRING Subject
         STRING Issuer
@@ -398,8 +398,29 @@ erDiagram
         STRING SerialNumber
     }
         
-    User ||--o| ClientCertificate : has_a
+    ApplicationUsers ||--o| ClientCertificates : has_a
 ```
+
+**Notes**:
+
+`ApplicationUsers` is a extended `IdentityUser` table to store user information.
+
+---
+
+## Glossary
+
+### Related artifacts
+
+| Element     | From | New Element | To | Description |
+|-------------|------|-------------|----|-------------|
+| User        | UC001-DM | ApplicationUser | UC001-DCD | Represents the user entity in the system. |
+
+---
+
+## Index Elements IDs
+
+- [UC001-DM](./Artifacts.md#domain-model)
+- [UC001-DCD](./Artifacts.md##dcd)
 
 ---
 
@@ -409,3 +430,5 @@ erDiagram
 [LCR001]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/RiscAnalyze.md#legal-and-compliance-risk
 [DCD]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/DCD.md
 [DM]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/DomainModel.md
+
+[microsoft-identity-abstractions-for-dotnet]: https://github.com/AzureAD/microsoft-identity-abstractions-for-dotnet/blob/main/README.md#concepts "Microsoft Identity Abstractions for .NET"

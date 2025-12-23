@@ -18,6 +18,8 @@
     <File Path=".editorconfig" />
     <File Path="CODE_OF_CONDUCT.md" />
     <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
     <File Path="docker-compose.yml" />
     <File Path="Dockerfile" />
     <File Path="LICENSE" />
@@ -32,6 +34,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/Portfolio.Core.Tests/Portfolio.Core.Tests.csproj" Id="a3be8fa4-e1fa-4d31-a182-882a16107240" />
+    <Project Path="tests/Portfolio.Infrastructure.Tests/Portfolio.Infrastructure.Tests.csproj" Id="4219cecf-e66b-46ad-ac47-7a6cb613c7e6" />
   </Folder>
   <Project Path="src/Portfolio.Core/Portfolio.Core.csproj" Id="2605f8bd-31da-43a3-ad4c-bf327d3a330e" />
   <Project Path="src/Portfolio.Domain/Portfolio.Domain.csproj" Id="c93a2278-1082-4013-9cc9-d96b5810e319" />

@@ -1,3 +1,4 @@
+using Portfolio.Core.Abstracts.Repositories;
 using Portfolio.Domain.Entities;
 
 namespace Portfolio.Core.Abstracts;

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <CodeCoverage>
+            <ModulePaths>
+              <Exclude>
+                <!-- Exclude test assemblies by pattern (regex). Add more <ModulePath> entries to exclude additional assemblies. -->
+                <ModulePath>.*\.Tests\.dll$</ModulePath>
+                <!-- Example: exclude specific test assemblies or other assemblies by name -->
+                <ModulePath>.*Portfolio\.Infrastructure\.Tests\.dll$</ModulePath>
+                <ModulePath>.*Portfolio\.Core\.Tests\.dll$</ModulePath>
+                <!-- Add other patterns here, e.g. <ModulePath>.*SomeOtherAssembly\.dll$</ModulePath> -->
+              </Exclude>
+            </ModulePaths>
+            <Attributes>
+              <Exclude>
+                <Attribute>^System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
+              </Exclude>
+            </Attributes>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

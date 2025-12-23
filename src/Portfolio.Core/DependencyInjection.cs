@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-using Portfolio.Core.Abstracts;
+using Portfolio.Core.Abstracts.Services;
 using Portfolio.Core.Services;
 
 namespace Portfolio.Core;

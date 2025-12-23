@@ -28,20 +28,6 @@ RUN set -eux; \
 RUN dotnet publish ./src/Portfolio/Portfolio/Portfolio.csproj -c $CONFIGURATION -o /artifacts --no-build
 
 ################################################################################
-# Exporter stage: runtime container that copies /artifacts from image to mounted host volume
-################################################################################
-#FROM tirsvad/tirsvadcli_debian13_nginx:latest AS exporter
-#SHELL ["/bin/bash", "-lc"]
-
-# Copy the published artifacts from builder into this image
-#COPY --from=builder /artifacts /artifacts
-#COPY docker/copy_artifacts.sh /copy_artifacts.sh
-##RUN sed -i 's/\r$//' /copy_artifacts.sh && chmod +x /copy_artifacts.sh
-#RUN chmod +x /copy_artifacts.sh
-
-#ENTRYPOINT ["/copy_artifacts.sh"]
-
-################################################################################
 # Test-runner stage: runtime container that executes tests when started
 ################################################################################
 FROM tirsvad/tirsvadcli_debian13_nginx:latest AS test-runner
@@ -71,6 +57,10 @@ COPY --from=builder /artifacts/ ./
 RUN rm /etc/nginx/{sites-available,sites-enabled}/default
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+# TODO Replace with cert
+RUN dotnet dev-certs https --trust
+
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh && ls -la /entrypoint.sh
 

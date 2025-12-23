@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Portfolio.Core.Tests;
+namespace Portfolio.Core.Tests.Services;
 
 
 /// <summary>

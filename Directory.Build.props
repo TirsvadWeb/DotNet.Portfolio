@@ -1,29 +1,35 @@
 <Project>
-    <PropertyGroup>
-        <!-- Resolve drive root: prefer SolutionDir (when building from solution), otherwise use project directory -->
-        <SolutionDriveRoot Condition="'$(SolutionDriveRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetPathRoot('$(SolutionDir)'))</SolutionDriveRoot>
-        <SolutionDriveRoot Condition="'$(SolutionDriveRoot)' == ''">$([System.IO.Path]::GetPathRoot('$(MSBuildProjectDirectory)'))</SolutionDriveRoot>
+  <PropertyGroup>
+    <Authors>Tirsvad</Authors>
+    <Company>TirsvadCLI</Company>
+  </PropertyGroup>
 
-        <!-- Only set these if not already specified (allows per-project overrides) -->
-        <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">$([System.IO.Path]::Combine('$(SolutionDriveRoot)','g','$(MSBuildProjectName)'))</BaseOutputPath>
-        <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','obj'))</BaseIntermediateOutputPath>
 
-        <!-- keep IntermediateOutputPath consistent -->
-        <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
+  <PropertyGroup>
+    <!-- Resolve drive root: prefer SolutionDir (when building from solution), otherwise use project directory -->
+    <SolutionDriveRoot Condition="'$(SolutionDriveRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetPathRoot('$(SolutionDir)'))</SolutionDriveRoot>
+    <SolutionDriveRoot Condition="'$(SolutionDriveRoot)' == ''">$([System.IO.Path]::GetPathRoot('$(MSBuildProjectDirectory)'))</SolutionDriveRoot>
 
-        <!-- Explicit output (bin) path used by the SDK-style build -->
-        <OutputPath>$([System.IO.Path]::Combine('$(BaseOutputPath)','bin','$(Configuration)'))</OutputPath>
-        <!-- Convenience alias for bin path -->
-        <BinOutputPath>$([System.IO.Path]::Combine('$(BaseOutputPath)','bin','$(Configuration)'))</BinOutputPath>
+    <!-- Only set these if not already specified (allows per-project overrides) -->
+    <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">$([System.IO.Path]::Combine('$(SolutionDriveRoot)','g','$(MSBuildProjectName)'))</BaseOutputPath>
+    <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','obj'))</BaseIntermediateOutputPath>
 
-        <!-- generated-source controls -->
-        <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
-        <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','gen','$(MSBuildProjectName)'))</CompilerGeneratedFilesOutputPath>
-        <GeneratedFilesDestination Condition="'$(GeneratedFilesDestination)' == ''">$(CompilerGeneratedFilesOutputPath)</GeneratedFilesDestination>
+    <!-- keep IntermediateOutputPath consistent -->
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
 
-        <!-- Default AppX/package layout path for WinUI/MSIX packaging; can be overridden per-project -->
-        <PackageLayoutPath Condition="'$(PackageLayoutPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</PackageLayoutPath>
-        <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</AppxPackageDir>
-        <PackageLayout Condition="'$(PackageLayout)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</PackageLayout>
-    </PropertyGroup>
+    <!-- Explicit output (bin) path used by the SDK-style build -->
+    <OutputPath>$([System.IO.Path]::Combine('$(BaseOutputPath)','bin','$(Configuration)'))</OutputPath>
+    <!-- Convenience alias for bin path -->
+    <BinOutputPath>$([System.IO.Path]::Combine('$(BaseOutputPath)','bin','$(Configuration)'))</BinOutputPath>
+
+    <!-- generated-source controls -->
+    <EmitCompilerGeneratedFiles Condition="'$(EmitCompilerGeneratedFiles)' == ''">true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath Condition="'$(CompilerGeneratedFilesOutputPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','gen','$(MSBuildProjectName)'))</CompilerGeneratedFilesOutputPath>
+    <GeneratedFilesDestination Condition="'$(GeneratedFilesDestination)' == ''">$(CompilerGeneratedFilesOutputPath)</GeneratedFilesDestination>
+
+    <!-- Default AppX/package layout path for WinUI/MSIX packaging; can be overridden per-project -->
+    <PackageLayoutPath Condition="'$(PackageLayoutPath)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</PackageLayoutPath>
+    <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</AppxPackageDir>
+    <PackageLayout Condition="'$(PackageLayout)' == ''">$([System.IO.Path]::Combine('$(BaseOutputPath)','AppX'))</PackageLayout>
+  </PropertyGroup>
 </Project>

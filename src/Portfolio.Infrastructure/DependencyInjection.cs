@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Portfolio.Core;
 using Portfolio.Core.Abstracts;
 using Portfolio.Infrastructure.Persistents;
+using Portfolio.Infrastructure.Services;
 
 namespace Portfolio.Infrastructure;
 
@@ -28,5 +29,8 @@ public static class DependencyInjection
 
         // Register repository for client certificates
         services.AddScoped<IClientCertificateRepository, Portfolio.Infrastructure.Repositories.ClientCertificateRepository>();
+
+        // Register certificate sign-in service implementation (implementation lives in Infrastructure, interface is in Core.Abstracts)
+        services.AddScoped<ICertificateSignInService, CertificateSignInService>();
     }
 }

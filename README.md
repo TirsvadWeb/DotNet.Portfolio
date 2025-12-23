@@ -27,15 +27,20 @@ Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - [Docker](https://www.docker.com/get-started) (optional, but recommended for easier setup)
 
-### Clone the Repository
+### Clone the Repository and Build
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/TirsvadWeb/DotNet.Portfolio.git
    cd DotNet.Portfolio
    ```
+  
+2. Restore .NET workloads:
+   ```bash
+   dotnet workload restore
+   ```
 
-2. Build the application (optional if you plan to run with Docker):
+3. Build the application (optional if you plan to run with Docker):
    ```bash
    dotnet build
    ```
@@ -101,85 +106,20 @@ ASPNETCORE_ENVIRONMENT=Production dotnet ef database update --project src/Portfo
 
 ### Configuration
 
-1. App Settings
-Update your configuration file (e.g., appsettings.json, appsettings.Development.json, or similar) with:
+Configuration for the application is provided in the project appsettings files. See `src/Portfolio/Portfolio/appsettings.json` and `src/Portfolio/Portfolio/appsettings.Development.json` for the exact values used by the project.
 
-	- Certificate validation settings
-	- Any environment-specific URLs (API base URL, callback URLs, etc.)
+Important keys to review or override:
 
-1. Certificates
+- `ClientCertificateAuth`
+  - `Enabled` (bool) — enable/disable automatic client-certificate support
+  - `Namespace` (string) — certificate namespace used by the preloaded certificate lookup (e.g. `TirsvadWebCert`, `TirsvadWebCertDevelopment`)
+- `ConnectionStrings:DefaultConnection` — the EF Core connection string (defaults to a local SQLite file)
+- `DataProtection:KeyPath` — optional path where data-protection keys are persisted (useful for Docker volumes)
+- `Kestrel:Certificates:Default` — file-based certificate configuration (Path / Password) when running Kestrel with a PFX
 
-	- Configure your development environment (e.g., Kestrel, IIS, Nginx, Apache, or a dev certificate manager) to:
-		
-		- Accept / require client certificates
-		- Forward certificate information to the application if needed
+For development you will usually enable `ClientCertificateAuth` and either configure Kestrel to load a PFX or import the development certificate (`TirsvadWebCertDevelopment`) into your user certificate store. Never commit PFX files or passwords to source control; use user secrets, environment variables or your CI secret store for sensitive values.
 
-	- Import your client certificate into your browser or OS certificate store.
-
-Create a development certificate named `TirsvadWebCert`
-
-If you need a local development certificate named `TirsvadWebCert`, follow one of the options below. Replace passwords and file paths to match your environment and keep secrets out of source control.
-
-Windows (PowerShell, recommended for local dev):
-
-```powershell
-# Run in an elevated PowerShell if you plan to add to LocalMachine store
-$cert = New-SelfSignedCertificate -Subject "CN=TirsvadWebCert" -KeyExportPolicy Exportable -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(10)
-$pwd = ConvertTo-SecureString -String "changeit" -Force -AsPlainText
-Export-PfxCertificate -Cert $cert -FilePath "$env:USERPROFILE\TirsvadWebCert.pfx" -Password $pwd
-
-# (Optional) Get thumbprint
-Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object {$_.Subject -match "CN=TirsvadWebCert"} | Select-Object Thumbprint
-
-# (Optional) Install to LocalMachine if required by your host
-Import-PfxCertificate -FilePath "$env:USERPROFILE\TirsvadWebCert.pfx" -CertStoreLocation "Cert:\LocalMachine\My" -Password $pwd
-```
-
-macOS / Linux (mkcert + openssl):
-
-```bash
-# Using mkcert (recommended for developer trust)
-mkcert -install
-mkcert -cert-file TirsvadWebCert.pem -key-file TirsvadWebCert-key.pem localhost
-
-# Create a PFX for Kestrel if needed
-openssl pkcs12 -export -out TirsvadWebCert.pfx -inkey TirsvadWebCert-key.pem -in TirsvadWebCert.pem -passout pass:changeit
-```
-
-Trust the certificate in your browser / OS
-
-- On Windows, use `certmgr.msc` or the MMC Certificates snap-in to copy the certificate to `Trusted Root Certification Authorities` (only for local dev).
-- On macOS, add the certificate to Keychain and mark it as trusted.
-- `mkcert` automates trust for local development on macOS and Windows.
-
-Using the certificate with Kestrel
-
-- File-based configuration (add to `appsettings.Development.json`):
-
-```json
-{
-  "Kestrel": {
-    "Certificates": {
-      "Default": {
-        "Path": "C:\\Users\\<you>\\TirsvadWebCert.pfx",
-        "Password": "changeit"
-      }
-    }
-  }
-}
-```
-
-- Store-based (thumbprint):
-
-  1. Get the thumbprint (see PowerShell command above).
-  2. Configure your host to load the certificate by thumbprint from `CurrentUser` or `LocalMachine` store.
-
-Security notes
-
-- Never commit PFX files or passwords to source control. Use user secrets, environment variables, or your CI secret store for passwords and PFX paths.
-- Use stronger passwords and shorter validity if appropriate for your environment.
-
-Exact steps may vary with your OS and hosting environment. If you want, I can add a `scripts/` folder with PowerShell/mkcert helper scripts for this repository.
+For the concrete configuration values used in this repository, open the two appsettings files referenced above.
 
 ---
 
@@ -198,32 +138,32 @@ Once running, you can:
 
 ## 🗺️ Roadmap / Future Ideas
 - [ ] v0.1 Basic profile with certificate login
-	- [ ] User profile
-	- [ ] Profile details (name, title, summary)
-	- [ ] Certificate login
+  - [ ] User profile
+  - [ ] Profile details (name, title, summary)
+  - [ ] Certificate login
 - [ ] v0.2 Portfolio basics
-	- [ ] Portfolio project management (CRUD operations)
-	- [ ] Tags / tech stack
-	- [ ] Project details (description, links, screenshots)
+  - [ ] Portfolio project management (CRUD operations)
+  - [ ] Tags / tech stack
+  - [ ] Project details (description, links, screenshots)
 - [ ] v0.3 Localization
-	- [ ] Localization / multi-language support
-	- [ ] English
-	- [ ] Danish
+  - [ ] Localization / multi-language support
+  - [ ] English
+  - [ ] Danish
 - [ ] v0.4 Blog and articles
-	- [ ] Blog post management (CRUD operations)
-	- [ ] Blog post details (title, content, author, date)
-	- [ ] Blog post comments
+  - [ ] Blog post management (CRUD operations)
+  - [ ] Blog post details (title, content, author, date)
+  - [ ] Blog post comments
 - [ ] v0.5 Add multiple login options and Role-based access control
-	- [ ] Add support for OAuth2 / OpenID Connect providers
-	- [ ] Add roles (Admin, Editor and Guest)
+  - [ ] Add support for OAuth2 / OpenID Connect providers
+  - [ ] Add roles (Admin, Editor and Guest)
 - [ ] v0.6 Add export and import functionality
-	- [ ] Export portfolio data as JSON
-	- [ ] Import portfolio data from JSON
+  - [ ] Export portfolio data as JSON
+  - [ ] Import portfolio data from JSON
 - [ ] v1.0 Stable release
-	- [ ] Polish UI/UX
-	- [ ] Comprehensive testing (unit, integration, e2e)
-	- [ ] Documentation and user guides
-	- [ ] Custom themes (light/dark)
+  - [ ] Polish UI/UX
+  - [ ] Comprehensive testing (unit, integration, e2e)
+  - [ ] Documentation and user guides
+  - [ ] Custom themes (light/dark)
  
 <!-- LINK REFERENCES -->
 [contributors-shield]: https://img.shields.io/github/contributors/TirsvadWeb/DotNet.Portfolio?style=for-the-badge

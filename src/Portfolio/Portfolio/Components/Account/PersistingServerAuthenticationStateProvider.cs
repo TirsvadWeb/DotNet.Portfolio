@@ -49,12 +49,12 @@ internal sealed class PersistingServerAuthenticationStateProvider : ServerAuthen
             ClaimsPrincipal principal = authenticationState.User;
             if (principal.Identity?.IsAuthenticated == true)
             {
-                string? userId = principal.FindFirst(_options.ClaimsIdentity.UserIdClaimType)?.Value;
+                string? userId = principal.FindFirst(_options!.ClaimsIdentity.UserIdClaimType)?.Value;
                 string? email = principal.FindFirst(_options.ClaimsIdentity.EmailClaimType)?.Value;
 
                 if (userId is not null && email is not null)
                 {
-                    _state.PersistAsJson(nameof(User), new User
+                    _state!.PersistAsJson(nameof(ApplicationUser), new ApplicationUser
                     {
                         Id = Guid.Parse(userId),
                         Email = email,

@@ -1,43 +1,29 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 using Portfolio.Domain.Entities;
 
 namespace Portfolio.Infrastructure.Persistents;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<ClientCertificate> ClientCertificates { get; set; } = null!;
-    public DbSet<User> Users { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         /// Configure UserInfo entity
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<ApplicationUser>(entity =>
         {
             entity.ToTable("Users");
             entity.HasKey(e => e.Id);
 
-            entity.Property(e => e.Email)
-                .IsRequired()
-                .HasMaxLength(256);
-
-            entity.HasIndex(e => e.Email)
-                .IsUnique();
-
-            entity.Property(e => e.IsActive)
-                .HasDefaultValue(true);
-
             // Optional one-to-one relationship to ClientCertificate
             entity.HasOne(e => e.Certificate)
                 .WithOne()
-                .HasForeignKey<User>(e => e.CertificateId)
+                .HasForeignKey<ApplicationUser>(e => e.CertificateId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
         });
@@ -60,5 +46,38 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(256);
         });
+
+        // Conditionally seed development data when running in Development environment
+        string? env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                  ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        if (string.Equals(env, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            Guid certId1 = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+            modelBuilder.Entity<ClientCertificate>().HasData(
+                new ClientCertificate
+                {
+                    Id = certId1,
+                    Subject = "CN=TirsvadWebCertDevelopment",
+                    Issuer = "CN=TirsvadWeb",
+                    SerialNumber = "ADMIN-DEV-0001",
+                    ValidFrom = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    ValidTo = new DateTime(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            modelBuilder.Entity<ApplicationUser>().HasData(
+                new ApplicationUser
+                {
+                    Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                    Email = "admin@example.local",
+                    EmailConfirmed = true,
+                    LockoutEnabled = false,
+                    CertificateId = certId1
+                }
+            );
+        }
+
     }
 }

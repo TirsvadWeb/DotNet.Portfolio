@@ -1,20 +1,14 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 using Portfolio.Components;
 using Portfolio.Components.Account;
-using Portfolio.Core.Abstracts;
 using Portfolio.Domain.Entities;
 using Portfolio.Infrastructure;
 using Portfolio.Infrastructure.Persistents;
-
-using System.Diagnostics;
-using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
-using System.IO;
+using Portfolio.Middleware;
 
 namespace Portfolio;
 
@@ -48,21 +42,45 @@ public class Program
         // Add services to the container.
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents()
-            .AddInteractiveWebAssemblyComponents();
+            .AddInteractiveWebAssemblyComponents()
+            .AddAuthenticationStateSerialization();
 
+        builder.Services.AddCascadingAuthenticationState();
+        builder.Services.AddScoped<IdentityRedirectManager>();
         builder.Services.AddScoped<AuthenticationStateProvider, PersistingServerAuthenticationStateProvider>();
 
         // register certificate service and infrastructure (EF Core)
         builder.Services.AddInfrastructureServices(builder.Configuration);
 
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = IdentityConstants.ApplicationScheme;
+            options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+        })
+        .AddIdentityCookies();
+
+
         // Register cookie authentication so we can establish an authenticated session from a client certificate
-        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie(options =>
-            {
-                options.Cookie.Name = "Portfolio.Auth";
-                options.LoginPath = "/login";
-                options.Cookie.SameSite = SameSiteMode.Lax;
-            });
+        //builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        //    .AddCookie(options =>
+        //    {
+        //        options.Cookie.Name = "Portfolio.Auth";
+        //        options.LoginPath = "/login";
+        //        options.Cookie.SameSite = SameSiteMode.Lax;
+        //    });
+
+        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+        builder.Services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.SignIn.RequireConfirmedAccount = true;
+            options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
+        })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
+
+        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
         WebApplication app = builder.Build();
 
@@ -70,6 +88,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseWebAssemblyDebugging();
+            app.UseMigrationsEndPoint();
         }
         else
         {
@@ -81,120 +100,34 @@ public class Program
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
         // Only enable HTTPS redirection if an HTTPS endpoint is configured.
-        // This avoids the runtime warning when the container is serving HTTP only (common in Docker setups).
-        bool httpsConfigured = false;
-        string? httpsPortEnv = builder.Configuration["ASPNETCORE_HTTPS_PORT"];
-        string? aspnetcoreUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? builder.Configuration["ASPNETCORE_URLS"];
-        if (!string.IsNullOrWhiteSpace(httpsPortEnv))
-        {
-            httpsConfigured = true;
-        }
-        else if (!string.IsNullOrWhiteSpace(aspnetcoreUrls) && aspnetcoreUrls.IndexOf("https", StringComparison.OrdinalIgnoreCase) >= 0)
-        {
-            httpsConfigured = true;
-        }
-
-        if (httpsConfigured)
-        {
-            app.UseHttpsRedirection();
-        }
-        else
-        {
-            Console.WriteLine("INFO: HTTPS endpoint not detected; skipping UseHttpsRedirection to avoid redirect warnings.");
-        }
+        // This avoids the runtime warning when the container is serving HTTP only (common in Docker setups)
+        // Moved to extension method to keep Program.cs minimal
+        app.UseConditionalHttpsRedirection(builder.Configuration);
 
         app.UseAntiforgery();
+
+        app.MapStaticAssets();
+
+
 
         // Apply any pending migrations at startup
         using (IServiceScope scope = app.Services.CreateScope())
         {
             ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Database.Migrate();
+            //db.Database.Migrate();
         }
 
-
-        // Enable authentication/authorization middleware
-        app.UseAuthentication();
-        app.UseAuthorization();
-
-        // Middleware: attempt to autoload a predefined X509 certificate (if present)
-        app.Use(async (context, next) =>
-        {
-            try
-            {
-                IX509CertificateService? certService = context.RequestServices.GetService<IX509CertificateService>();
-                X509Certificate2? cert = certService?.GetPreloadedCertificateAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                if (cert != null)
-                {
-                    context.Items["PreloadedX509Certificate"] = cert;
-
-                    // If a certificate is found and the user is not already authenticated,
-                    // create a ClaimsPrincipal and sign in using cookie authentication.
-                    if (!(context.User?.Identity?.IsAuthenticated ?? false))
-                    {
-                        try
-                        {
-                            IClientCertificateRepository? repo = context.RequestServices.GetService<IClientCertificateRepository>();
-                            if (repo != null)
-                            {
-                                // Ensure certificate is recorded in database (idempotent add)
-                                ClientCertificate? existing = await repo.FindBySubjectAsync(cert.Subject ?? string.Empty);
-                                if (existing == null)
-                                {
-                                    ClientCertificate entity = new()
-                                    {
-                                        Id = Guid.NewGuid(),
-                                        Subject = cert.Subject ?? string.Empty,
-                                        Issuer = cert.Issuer ?? string.Empty,
-                                        SerialNumber = cert.SerialNumber ?? string.Empty,
-                                        ValidFrom = cert.NotBefore,
-                                        ValidTo = cert.NotAfter
-                                    };
-
-                                    await repo.AddAsync(entity);
-                                }
-                            }
-
-                            List<Claim> claims =
-                            [
-                                new Claim(ClaimTypes.Name, cert.Subject ?? string.Empty),
-                                new Claim("thumbprint", cert.Thumbprint ?? string.Empty),
-                                new Claim("issuer", cert.Issuer ?? string.Empty),
-                                new Claim("serialNumber", cert.SerialNumber ?? string.Empty)
-                            ];
-
-                            ClaimsIdentity identity = new(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                            ClaimsPrincipal principal = new(identity);
-
-                            // Sign in (non-persistent by default)
-                            await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = false });
-
-                            Debug.WriteLine("User signed in automatically via preloaded X509 certificate.");
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Failed to sign in with certificate: {ex.Message}");
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine("Predefined certificate not found in CurrentUser\\My store.");
-                }
-            }
-            catch
-            {
-                // ignore any errors while attempting to read certificate
-            }
-
-            await next();
-        });
+        // Middleware: attempt to autoload a predefined X509 certificate (if present) and authenticate the user
+        app.UseMiddleware<PreloadedX509CertificateMiddleware>();
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
+
+        // Add additional endpoints required by the Identity /Account Razor components.
+        app.MapAdditionalIdentityEndpoints();
 
         app.Run();
     }
