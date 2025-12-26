@@ -324,6 +324,7 @@ public class X509CertificateServiceTests
     }
 
     [TestMethod]
+    [TestCategory("Concurrent")]
     public async Task ConcurrentCache_WarmCache_ManyReadersReturnSameThumbprintAsync()
     {
         string name = TestPrefix + "CacheConcurrent" + Guid.NewGuid().ToString("N");

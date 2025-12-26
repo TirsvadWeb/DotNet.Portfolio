@@ -423,3 +423,4 @@ FodyWeavers.xsd
 /keys
 /src/Portfolio/Portfolio/keys
 /src/Portfolio/Portfolio/portfolio.db
+/src/Portfolio/Portfolio/secrets.json

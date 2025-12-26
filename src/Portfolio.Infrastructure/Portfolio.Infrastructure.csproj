@@ -15,10 +15,17 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.1" />
     <!--<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.1" />-->
     <!--<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1" />-->
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Portfolio.Core\Portfolio.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

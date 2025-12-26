@@ -2,6 +2,7 @@ using Portfolio.Core.Abstracts.Services;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -280,14 +281,19 @@ public class X509CertificateService : IX509CertificateService
                 try
                 {
                     byte[] pfx = cert.Export(X509ContentType.Pfx, string.Empty);
-                    certWithKey = new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+                    //certWithKey = new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+                    certWithKey = X509CertificateLoader.LoadPkcs12(pfx, string.Empty, X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+
                 }
                 catch
                 {
-                    certWithKey = new X509Certificate2(cert.Export(X509ContentType.Pfx));
+                    certWithKey = X509CertificateLoader.LoadPkcs12(cert.Export(X509ContentType.Pfx), string.Empty);
                 }
 
-                certWithKey.FriendlyName = subjectName;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    certWithKey.FriendlyName = subjectName;
+                }
 
                 try
                 {

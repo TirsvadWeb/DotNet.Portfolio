@@ -2,17 +2,26 @@
   <Folder Name="/docs/">
     <File Path="docs/DCD.md" />
     <File Path="docs/DomainModel.md" />
-    <File Path="docs/ER.md" />
+    <File Path="docs/ERD.md" />
+    <File Path="docs/KPI.md" />
+    <File Path="docs/QualityCriteriaCode.md" />
+    <File Path="docs/README.md" />
+    <File Path="docs/RiskAnalysis.md" />
     <File Path="docs/scenarios.md" />
     <File Path="docs/usecases.md" />
+  </Folder>
+  <Folder Name="/docs/Architecture/">
+    <File Path="docs/Architecture/README.md" />
   </Folder>
   <Folder Name="/docs/CopilotScripts/">
     <File Path="docs/CopilotScripts/mstest.md" />
     <File Path="docs/CopilotScripts/xmlDocumentation.md" />
   </Folder>
-  <Folder Name="/docs/UseCases/" />
+  <Folder Name="/docs/UseCases/">
+    <File Path="docs/UseCases/README.md" />
+  </Folder>
   <Folder Name="/docs/UseCases/UC001/">
-    <File Path="docs/UseCases/UC001/Artifacts.md" />
+    <File Path="docs/UseCases/UC001/README.md" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

@@ -10,6 +10,8 @@ using Portfolio.Infrastructure;
 using Portfolio.Infrastructure.Persistents;
 using Portfolio.Middleware;
 
+using System.Reflection;
+
 namespace Portfolio;
 
 public class Program
@@ -17,6 +19,23 @@ public class Program
     public static void Main(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        try
+        {
+            builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true, reloadOnChange: false);
+        }
+        catch
+        {
+            // ignore if user secrets are not available in this environment
+        }
+
+        // If running in Docker/tests-stage the compose file sets DB_HOST=host.docker.internal
+        // prefer that value for connecting to the host's database from inside the container
+        string? dockerDbHost = Environment.GetEnvironmentVariable("DB_HOST");
+        if (!string.IsNullOrWhiteSpace(dockerDbHost))
+        {
+            builder.Configuration["Database:Host"] = dockerDbHost;
+        }
 
         // Configure data protection key persistence so keys survive process/container restarts.
         // Path can be overridden by configuration: "DataProtection:KeyPath" (useful for Docker volumes).

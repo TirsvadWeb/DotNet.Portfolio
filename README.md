@@ -6,10 +6,8 @@ A high‑performance portfolio application built with C# and WebAssembly, runnin
 ## Table of Contents
 - [Features](#features)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Clone the Repository](#clone-the-repository)
+  - [Clone the repository](#clone-the-repository-and-build)
   - [Run the Application](#run-the-application)
-  - [Add Database Migrations](#add-database-migrations)
 - [Configuration](#configuration)
 - [Using the Portfolio](#using-the-portfolio)
 - [Roadmap / Future Ideas](#roadmap--future-ideas)
@@ -77,19 +75,24 @@ startup project (which provides configuration/connection strings) is the
 `src/Portfolio/Portfolio` project. The ASPNETCORE_ENVIRONMENT setting
 controls which environment configuration is used when creating/applying migrations.
 
+For Windows PowerShell:
+
 ```powershell
 # Windows PowerShell
 # Development migration
 $Env:ASPNETCORE_ENVIRONMENT = 'Development'
 dotnet ef migrations add InitialCreate.Development --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
-dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+# dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
 
 # Production migration
 $Env:ASPNETCORE_ENVIRONMENT = 'Production'
-dotnet ef migrations add InitialCreate.Production --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
-# Apply production migration (ensure startup project's configuration points to the production DB)
+dotnet ef migrations add InitialCreate --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
 dotnet ef database update --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
+```
 
+For Bash / macOS:
+
+```bash
 # Bash / macOS
 # Development migration
 ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add InitialCreate.Development --project src/Portfolio.Infrastructure --startup-project src/Portfolio/Portfolio --context ApplicationDbContext
@@ -113,11 +116,42 @@ Important keys to review or override:
 - `ClientCertificateAuth`
   - `Enabled` (bool) — enable/disable automatic client-certificate support
   - `Namespace` (string) — certificate namespace used by the preloaded certificate lookup (e.g. `TirsvadWebCert`, `TirsvadWebCertDevelopment`)
-- `ConnectionStrings:DefaultConnection` — the EF Core connection string (defaults to a local SQLite file)
 - `DataProtection:KeyPath` — optional path where data-protection keys are persisted (useful for Docker volumes)
 - `Kestrel:Certificates:Default` — file-based certificate configuration (Path / Password) when running Kestrel with a PFX
 
-For development you will usually enable `ClientCertificateAuth` and either configure Kestrel to load a PFX or import the development certificate (`TirsvadWebCertDevelopment`) into your user certificate store. Never commit PFX files or passwords to source control; use user secrets, environment variables or your CI secret store for sensitive values.
+User secrets (secrets.json)
+
+During local development we use the .NET user-secrets feature to keep sensitive values (connection strings, PFX passwords, API keys, etc.) out of source control. The secrets are stored in a `secrets.json` file managed by the secret manager. The on-disk location depends on the OS and the `UserSecretsId` in the project file:
+
+- Windows: `%APPDATA%/Microsoft/UserSecrets/{userSecretsId}/secrets.json` => {source_path}
+- Linux/macOS: `~/.microsoft/usersecrets/{userSecretsId}/secrets.json` => {source_path}
+
+The application reads these values via the `UserSecrets` configuration provider when running in the `Development` environment.
+
+Exposing secrets to Docker Compose
+
+Containers do not automatically have access to your host's user-secrets store, so when running with Docker Compose you must provide the secret values to the container. 
+There are three common approaches:
+
+1) Mount the `secrets.json` file into the container
+
+```yaml
+services:
+  portfolio:
+    # ... other settings ...
+    volumes:
+      # Mount the secrets.json file into the container
+      # Replace {Yours user} and {userSecretsId} accordingly
+      - "{source_path}:/root/.microsoft/usersecrets/{userSecretsId}/secrets.json:ro"
+```
+
+Replace `UserSecretsId` with actual `UserSecretsId` (example `0cf4f171-3a18-4cbc-a691-09a51dbb2c5e`).
+Adjust source path according to your OS. 
+This makes the secrets available to the `UserSecrets` configuration provider inside the container.
+
+Notes
+
+- For local development you can continue to use the Secret Manager (`dotnet user-secrets`) and run the app without Docker; when you move to containers choose one of the approaches above so the container receives the same configuration values.
 
 For the concrete configuration values used in this repository, open the two appsettings files referenced above.
 

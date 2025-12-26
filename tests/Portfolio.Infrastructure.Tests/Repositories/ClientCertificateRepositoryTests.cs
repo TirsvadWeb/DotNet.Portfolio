@@ -13,7 +13,7 @@ namespace Portfolio.Infrastructure.Tests.Repositories;
 
 /// <summary>
 /// Tests for `ClientCertificateRepository` grouped by Functional, Concurrency and Benchmark.
-/// Covers: Add, GetById, GetAll, Update, Delete, FindBySubjectAsync, multi-session persistence,
+/// Covers: Add, GetById, GetAll, Update, Delete, FindBySubject, multi-session persistence,
 /// concurrency using separate contexts and a simple performance benchmark.
 /// Uses a file-based SQLite database and applies EF Core migrations (empty production migration exists).
 /// </summary>
@@ -46,8 +46,8 @@ public class ClientCertificateRepositoryTests
 
         // Arrange - create and seed
         using ApplicationDbContext context = new(options);
-        // Apply migrations instead of EnsureCreated to use migration-based schema (includes empty production migration)
-        await context.Database.MigrateAsync(TestContext.CancellationToken);
+        // Create database schema from the model since migrations are not present in tests
+        await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
         ClientCertificateRepository repo = new(context);
 
         ClientCertificate cert = new()
@@ -96,7 +96,7 @@ public class ClientCertificateRepositoryTests
     {
         DbContextOptions<ApplicationDbContext> options = CreateOptions(Guid.NewGuid().ToString());
         using ApplicationDbContext context = new(options);
-        await context.Database.MigrateAsync(TestContext.CancellationToken);
+        await context.Database.EnsureCreatedAsync(TestContext.CancellationToken);
         ClientCertificateRepository repo = new(context);
 
         Assert.IsNull(await repo.FindBySubjectAsync(null!));
@@ -114,6 +114,14 @@ public class ClientCertificateRepositoryTests
         // Use a single SQLite file so contexts see the same data when required
         string dbName = Guid.NewGuid().ToString();
 
+        // Ensure the database schema is created once before running concurrent workers.
+        // Calling EnsureCreated concurrently from multiple threads can race and lead to "table already exists" errors
+        // so create the schema on the calling thread.
+        using (ApplicationDbContext initCtx = new(CreateOptions(dbName)))
+        {
+            await initCtx.Database.EnsureCreatedAsync(TestContext.CancellationToken);
+        }
+
         Task[] tasks = new Task[workers];
         Exception? caught = null;
 
@@ -125,7 +133,6 @@ public class ClientCertificateRepositoryTests
                 {
                     // Each worker creates its own context/repo instance (DbContext is not thread-safe)
                     using ApplicationDbContext ctx = new(CreateOptions(dbName));
-                    await ctx.Database.MigrateAsync(TestContext.CancellationToken);
                     ClientCertificateRepository repo = new(ctx);
 
                     // Add or update a certificate record
@@ -143,7 +150,6 @@ public class ClientCertificateRepositoryTests
 
                     // Read back via another repo instance to ensure visibility
                     using ApplicationDbContext readCtx = new(CreateOptions(dbName));
-                    await readCtx.Database.MigrateAsync(TestContext.CancellationToken);
                     ClientCertificateRepository readRepo = new(readCtx);
                     ClientCertificate? found = await readRepo.FindBySubjectAsync(subject);
                     // found may be any of the added entries; we only assert no exceptions
@@ -162,7 +168,7 @@ public class ClientCertificateRepositoryTests
         // Verify that at least one record exists for the subject
         using (ApplicationDbContext verifyCtx = new(CreateOptions(dbName)))
         {
-            await verifyCtx.Database.MigrateAsync(TestContext.CancellationToken);
+            await verifyCtx.Database.EnsureCreatedAsync(TestContext.CancellationToken);
             ClientCertificateRepository repo = new(verifyCtx);
             bool any = (await repo.GetAllAsync()).Any(c => c.Subject == subject);
             Assert.IsTrue(any, "Expected at least one certificate entry for the subject after concurrent adds.");
@@ -182,7 +188,7 @@ public class ClientCertificateRepositoryTests
 
         using (ApplicationDbContext ctx = new(options))
         {
-            await ctx.Database.MigrateAsync(TestContext.CancellationToken);
+            await ctx.Database.EnsureCreatedAsync(TestContext.CancellationToken);
             ClientCertificateRepository repo = new(ctx);
 
             ClientCertificate cert = new()
@@ -200,7 +206,7 @@ public class ClientCertificateRepositoryTests
 
         using (ApplicationDbContext ctx = new(options))
         {
-            await ctx.Database.MigrateAsync(TestContext.CancellationToken);
+            await ctx.Database.EnsureCreatedAsync(TestContext.CancellationToken);
             ClientCertificateRepository repo = new(ctx);
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < calls; i++)
@@ -209,8 +215,7 @@ public class ClientCertificateRepositoryTests
             }
             sw.Stop();
 
-            Assert.IsLessThan(thresholdMs,
-sw.ElapsedMilliseconds, $"Expected {calls} lookups to complete under {thresholdMs}ms but took {sw.ElapsedMilliseconds}ms.");
+            Assert.IsLessThan(thresholdMs, sw.ElapsedMilliseconds, $"Expected {calls} lookups to complete under {thresholdMs}ms but took {sw.ElapsedMilliseconds}ms.");
         }
     }
 
@@ -225,7 +230,7 @@ sw.ElapsedMilliseconds, $"Expected {calls} lookups to complete under {thresholdM
         // Session 1: add
         using (ApplicationDbContext ctx = new(options))
         {
-            await ctx.Database.MigrateAsync(TestContext.CancellationToken);
+            await ctx.Database.EnsureCreatedAsync(TestContext.CancellationToken);
             ClientCertificateRepository repo = new(ctx);
             ClientCertificate cert = new()
             {
@@ -244,7 +249,7 @@ sw.ElapsedMilliseconds, $"Expected {calls} lookups to complete under {thresholdM
         // Session 2: read from new context
         using (ApplicationDbContext ctx2 = new(options))
         {
-            await ctx2.Database.MigrateAsync(TestContext.CancellationToken);
+            await ctx2.Database.EnsureCreatedAsync(TestContext.CancellationToken);
             ClientCertificateRepository repo2 = new(ctx2);
             ClientCertificate? found = await repo2.GetByIdAsync(id);
             Assert.IsNotNull(found);
@@ -255,7 +260,7 @@ sw.ElapsedMilliseconds, $"Expected {calls} lookups to complete under {thresholdM
         }
 
         using ApplicationDbContext ctx3 = new(options);
-        await ctx3.Database.MigrateAsync(TestContext.CancellationToken);
+        await ctx3.Database.EnsureCreatedAsync(TestContext.CancellationToken);
         ClientCertificateRepository repo3 = new(ctx3);
         ClientCertificate? missing = await repo3.GetByIdAsync(id);
         Assert.IsNull(missing);
