@@ -1,10 +1,9 @@
 # Entity-Relationship Diagram
 
-
 ## Metadata
 | **ID** | **Description** | Cross Reference links |
-|--------|-----------------|----------------------|
-| ERD-001 | Entity-Relationship Diagram | [Link to Doc][ERD-001-Doc] |
+|--------|-----------------|-----------------------|
+| ERD-001 | Entity-Relationship Diagram | [UC-001-ERD] |
 
 ## Diagram
 ```mermaid
@@ -30,5 +29,5 @@ erDiagram
 
 ---
 <!-- Links -->
-[DM]: UseCases/UC001/Artifacts.md#
-[UC001-ERD]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/UseCases/UC001/Artifacts.md#er-diagram
+[UC-001-DM]: UseCases/UC001/Artifacts.md#
+[UC-001-ERD]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/UseCases/UC001/Artifacts.md#er-diagram

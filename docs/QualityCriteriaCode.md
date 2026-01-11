@@ -2,11 +2,9 @@
 To ensure high-quality source code in our projects, the following quality criteria must be adhered to for C#.
 
 ## Metadata
-| Element     | Description |
-|-------------|-------------|
-| Id          | QC-001      |
-| Title       | Quality Criteria for Source Code (OOP) and MSSQL |
-
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| QC-001 | Quality Criteria for Source Code (OOP) and MSSQL | [KPI-NFR-001] |
 
 ## General Criteria
 - **Encoding**: All C# files must use UTF-8 encoding without BOM (Byte Order Mark).

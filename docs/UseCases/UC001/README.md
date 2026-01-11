@@ -25,10 +25,12 @@ It is intended to provide a comprehensive understanding of the use case, includi
 
 ## Metadata
 
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001 | Sign in using a client certificate | [Domain Model][DM]<br/>[DCD][DCD]<br/>[System Sequence Diagram](#system-sequence-diagram)<br/>[Operations Contracts](#operations-contracts)<br/>[Sequence Diagram](#sequence-diagram)<br/>[ER Diagram](#er-diagram) |
+
 | Element     | Description |
 |-------------|-------------|
-| Use Case ID | UC-001      |
-| Title       | Sign in using a client certificate |
 | Level       | User Goal   |
 
 ---
@@ -45,10 +47,10 @@ This is a initial version of the Domain Model for the use case "Sign in using a 
 The maintained Domain Model can be found [here][DM].
 
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-DM   |
-| Title       | Sign in using a client certificate - Domain Model |
+
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-DM | Sign in using a client certificate - Domain Model | [User Story](#user-story)<br/>[DCD](#dcd)<br/>[ER Diagram](#er-diagram) |
 
 ### Diagram
 
@@ -74,11 +76,10 @@ classDiagram
 
 ## Use Case Brief
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-B    |
-| Title       | Sign in using a client certificate - Brief |
-| Cross reference | [User Story](#user-story)<br/>Technical Risk password phising [TR001] |
+
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-B | Sign in using a client certificate - Brief | [User Story](#user-story)<br/>[TR-001][TR-001] |
 
 ### Primary Actor
 - User
@@ -135,10 +136,10 @@ flowchart TD
 This casual (alternate) use case describes the two main outcomes when a user attempts to authenticate with a client certificate: success or failure.
 
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-C    |
-| Title       | Sign in using a client certificate - Casual |
+
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-C | Sign in using a client certificate - Casual | [Use Case Brief](#use-case-brief)<br/>[System Sequence Diagram](#system-sequence-diagram) |
 
 ### Primary Flow — Successful Authentication
 1. User navigates to the web application.
@@ -170,11 +171,9 @@ Postconditions:
 
 ## System Sequence Diagram
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-SSD  |
-| Title       | Sign in using a client certificate - System Sequence Diagram |
-| Cross reference | [Use Case Brief](#use-case-casual) |
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-SSD | Sign in using a client certificate - System Sequence Diagram | [Use Case Brief](#use-case-brief)<br/>[System Sequence Diagram](#system-sequence-diagram) |
 
 ### Diagram
 ```mermaid
@@ -211,11 +210,13 @@ sequenceDiagram
 ---
 
 ## Operations Contracts
+### Metadata
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-OC | Sign in using a client certificate - Operations Contracts | [System Sequence Diagram](#system-sequence-diagram) |
+
 | Element     | Description |
 |-------------|-------------|
-| ID          | UC-001-OC   |
-| Title       | Sign in using a client certificate - Operations Contracts |
-| Cross reference | [UC001-SSD](#system-sequence-diagram) |
 | Operation | `AuthenticateUserWithClientCertificate()` |
 | Preconditions | - User has a valid client certificate installed in their browser/OS.<br/>- System is configured to accept client certificate authentication. |
 | Postconditions | - The user is authenticated and granted access to the web application.<br/>- An audit log entry is created for the authentication event. |
@@ -224,11 +225,9 @@ sequenceDiagram
 
 ## Sequence Diagram
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-SD   |
-| Title       | Sign in using a client certificate - Sequence Diagram |
-| Cross reference | [UC001-SSD](#system-sequence-diagram) |
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-SD | Sign in using a client certificate - Sequence Diagram | [Use Case Brief](#use-case-brief)<br/>[System Sequence Diagram](#system-sequence-diagram) |
 
 ### Diagram
 ```mermaid
@@ -271,17 +270,15 @@ sequenceDiagram
 ## DCD
 Domain Class Diagram (DCD) for the use case "Sign in using a client certificate".
 It captures the key entities, their attributes, and relationships relevant to the authentication process using client certificates.
-The maintained DCD can be found [here][DCD].
+The solution DCD can be found [here][DCD-001].
 
 ### Metadata
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC*001-DCD  |
-| Title       | Sign in using a client certificate - Domain Class Diagram |
-| Cross reference | [Domain Model](#domain-model)<br/> |
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC*001-DCD | Sign in using a client certificate - Domain Class Diagram | [Domain Model](#domain-model)<br/> |
 
 ### UC001 Domain Class Diagram
-This diagram shows the application domain entities and how they integrate with the Identity model for the UC001 use case.
+This diagram shows the application domain entities and how they integrate with the Identity model for the UC-001 use case.
 
 ```mermaid
 classDiagram
@@ -381,11 +378,9 @@ classDiagram
 ## ER Diagram
 
 ### Metadata
-
-| Element     | Description |
-|-------------|-------------|
-| ID          | UC-001-ERD  |
-| Title       | Sign in using a client certificate - ER Diagram |
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-001-ERD | Sign in using a client certificate - ER Diagram | [Domain Model](#domain-model)<br/>[DCD](#dcd) |
 
 ### Diagram
 
@@ -424,18 +419,11 @@ erDiagram
 
 ---
 
-## Index Elements IDs
-
-- [UC001-DM](./README.md#domain-model)
-- [UC001-DCD](./README.md##dcd)
-
----
-
 <!-- Links to related artifacts -->
 [TR-001]: ../../RiskAnalysis.md#technical-risk
 [OR-001]: ../../RiskAnalysis.md#operational-risk
 [LCR-001]: ../../RiskAnalysis.md#legal-and-compliance-risk
-[DCD]: ../../DCD.md
-[DM]: ../../DomainModel.md
+[DCD-001]: ../../DCD.md
+[DM-001]: ../../DomainModel.md
 
 [microsoft-identity-abstractions-for-dotnet]: https://github.com/AzureAD/microsoft-identity-abstractions-for-dotnet/blob/main/README.md#concepts "Microsoft Identity Abstractions for .NET"

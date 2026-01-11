@@ -5,10 +5,15 @@ It is intended to provide a comprehensive understanding of the use case, includi
 ---
 
 ## Metadata
+| **ID** | **Description** | Cross Reference links |
+|--------|-----------------|-----------------------|
+| UC-002 | View and edit basic profile | [Link to User Story](#user-story) |
 
-| Element     | Description |
-|-------------|-------------|
-| Use Case ID | UC002       |
-| Title       | View and edit basic profile |
-| Level       | User Goal  |
+---
 
+## User Story
+As a registered user,  
+I want to view and edit my basic profile information   
+so that I can keep my account details up to date.
+
+---

@@ -3,8 +3,8 @@ A conceptual representation of the main entities and their relationships within 
 
 ## Metadata
 | **ID** | **Description** | Cross Reference links |
-|--------|-----------------|----------------------|
-| DM-000 | Domain Model    | [Use Cases 001][UC001-DM]<br/> |
+|--------|-----------------|-----------------------|
+| DM-001 | Domain Model    | [Use Cases 001][UC-001-DM]<br/> |
 
 ## Diagram
 ```mermaid
@@ -26,4 +26,4 @@ classDiagram
 ```
 
 <!-- Links -->
-[UC001-DM]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/UseCases/UC001/Artifacts.md#domain-model
+[UC-001-DM]: https://github.com/TirsvadWeb/DotNet.Portfolio/blob/main/docs/UseCases/UC001/Artifacts.md#domain-model
