@@ -10,17 +10,17 @@ timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 resultDir="/artifacts/TestResults/$timestamp"
 coverageDir="/artifacts/TestResults/CoverageReport/$timestamp"
 latestCoverageDir="/artifacts/TestResults/CoverageReport/Latest"
-mkdir -p "${resultDir}/CoverageReport"
+#mkdir -p "${resultDir}/CoverageReport"
 mkdir -p "${coverageDir}/Markdown" "${coverageDir}/Html" "${coverageDir}/Cobertura" "${coverageDir}/Badges"
 
 # Configuration (allow override from environment)
-CONFIGURATION=${CONFIGURATION:-Release}
+CONFIGURATION=${CONFIGURATION:-Development}
 
 # Ensure we're in workspace containing the solution/repo
 cd /workspace || exit 1
 
 # Ensure tests use Development environment
-export ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Release}
+export ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
 
 echo "Discovering test projects..."
 
@@ -38,22 +38,20 @@ if [ $exit_code -ne 0 ]; then
 fi
 
 # Find all .Tests.csproj files and run tests
-while IFS= read -r -d '' proj; do
-  name=$(basename "${proj}")
-  name_no_ext="${name%.csproj}"
-  proj_dir=$(dirname "${proj}")
-  echo "Running tests for project: $name_no_ext"
-#  echo "ls -l $proj"
-#  ls -l "$proj"
-  echo "dotnet test \"$proj\" -c Debug --results-directory \"${resultDir}\" --code-coverage"
+#while IFS= read -r -d '' proj; do
+#  name=$(basename "${proj}")
+#  name_no_ext="${name%.csproj}"
+#  proj_dir=$(dirname "${proj}")
+#  echo "Running tests for project: $name_no_ext"
+#  echo "dotnet test \"$proj\" -c Debug --results-directory \"${resultDir}\" --code-coverage"
+#done < <(find . -type f -name "*.Tests.csproj" -print0)
 
-  
-  #dotnet test "$proj" --results-directory "${resultDir}" --code-coverage || exit_code=$?
-#  dotnet test "$proj" --results-directory "${resultDir}" --collect:"XPlat Code Coverage" || exit_code=$?
+dotnet test -c Debug --results-directory "${resultDir}" --collect:"XPlat Code Coverage" --logger "trx" || exit_code=$?
 
-done < <(find . -type f -name "*.Tests.csproj" -print0)
-
-dotnet test -c Debug --results-directory "${resultDir}" --collect:"XPlat Code Coverage" || exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "Some tests failed with exit code $exit_code"
+  exit $exit_code
+fi
 
 # After running tests try to merge coverage reports into a single file and generate an HTML report
 echo "Combining coverage reports (results in: ${resultDir})..."

@@ -22,7 +22,7 @@ namespace Portfolio.Infrastructure.Tests.Services
         [DataRow("Release")]
         public void CreateOptions_ReturnsValidOptions(string env)
         {
-            DbContextOptionsServices svc = new DbContextOptionsServices();
+            DbContextOptionsServices svc = new();
             DbContextOptions<ApplicationDbContext> options = svc.CreateOptions(env);
             Assert.IsNotNull(options);
             Assert.IsInstanceOfType(options, typeof(DbContextOptions<ApplicationDbContext>));
@@ -35,10 +35,10 @@ namespace Portfolio.Infrastructure.Tests.Services
         public void CreateConnectionString_ReturnsValidConnectionString(string env)
         {
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", env);
-            DbContextOptionsServices svc = new DbContextOptionsServices();
+            DbContextOptionsServices svc = new();
             string conn = svc.CreateConnectionString(env);
             Assert.IsFalse(string.IsNullOrWhiteSpace(conn));
-            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(conn);
+            SqlConnectionStringBuilder builder = new(conn);
             Assert.IsFalse(string.IsNullOrWhiteSpace(builder.DataSource));
         }
         #endregion
@@ -48,7 +48,7 @@ namespace Portfolio.Infrastructure.Tests.Services
         //[TestCategory("Error")]
         //public void Constructor_ThrowsIfEnvNotSet()
         //{
-        //    string? old = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        //    string? oldApsEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
         //    // Test with null
         //    Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
@@ -58,7 +58,7 @@ namespace Portfolio.Infrastructure.Tests.Services
         //    }
         //    finally
         //    {
-        //        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", old);
+        //        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", oldApsEnv);
         //    }
 
         //    // Test with empty string
@@ -69,7 +69,7 @@ namespace Portfolio.Infrastructure.Tests.Services
         //    }
         //    finally
         //    {
-        //        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", old);
+        //        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", oldApsEnv);
         //    }
         //}
 
@@ -78,16 +78,21 @@ namespace Portfolio.Infrastructure.Tests.Services
         public void CreateConnectionString_ThrowsIfNotFound()
         {
             // Ensure environment variable is set before any code runs
-            string? old = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+            string? oldApsEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            string? origDbEnv = Environment.GetEnvironmentVariable("DOCKER_DOTNET_TEST");
+            //Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "NonExistentEnv");
+
+            Environment.SetEnvironmentVariable("DOCKER_DOTNET_TEST", "false");
+
             try
             {
-                DbContextOptionsServices svc = new DbContextOptionsServices();
-                Assert.Throws<Exception>(() => svc.CreateConnectionString("NonExistentEnv"));
+                DbContextOptionsServices svc = new();
+                _ = Assert.Throws<Exception>(() => svc.CreateConnectionString("NonExistentEnv"));
             }
             finally
             {
-                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", old);
+                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", oldApsEnv);
+                Environment.SetEnvironmentVariable("DOCKER_DOTNET_TEST", origDbEnv);
             }
         }
         #endregion
@@ -98,8 +103,8 @@ namespace Portfolio.Infrastructure.Tests.Services
         public void CreateOptions_ThreadSafe_MultiSession()
         {
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-            DbContextOptionsServices svc = new DbContextOptionsServices();
-            Parallel.For(0, 10, i =>
+            DbContextOptionsServices svc = new();
+            _ = Parallel.For(0, 10, i =>
             {
                 DbContextOptions<ApplicationDbContext> options = svc.CreateOptions("Development");
                 Assert.IsNotNull(options);
@@ -114,7 +119,7 @@ namespace Portfolio.Infrastructure.Tests.Services
         {
             int timeOut = 400; // milliseconds
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-            DbContextOptionsServices svc = new DbContextOptionsServices();
+            DbContextOptionsServices svc = new();
             Stopwatch sw = Stopwatch.StartNew();
             string conn = svc.CreateConnectionString("Development");
             sw.Stop();
@@ -129,16 +134,16 @@ namespace Portfolio.Infrastructure.Tests.Services
         public void CreateOptions_MultiSession()
         {
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-            Parallel.For(0, 5, i =>
+            _ = Parallel.For(0, 5, i =>
             {
-                DbContextOptionsServices svc = new DbContextOptionsServices();
+                DbContextOptionsServices svc = new();
                 DbContextOptions<ApplicationDbContext> options = svc.CreateOptions("Development");
                 Assert.IsNotNull(options);
             });
         }
         #endregion
 
-        #region Private/Helper/Edge Tests
+        #region Private/Helper Tests
         [TestMethod]
         [TestCategory("Helper")]
         public void BuildConfiguration_ReturnsConfigurationRoot()
@@ -154,12 +159,12 @@ namespace Portfolio.Infrastructure.Tests.Services
         public void ReplaceTokens_ResolvesToken()
         {
             Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-            DbContextOptionsServices svc = new DbContextOptionsServices();
+            DbContextOptionsServices svc = new();
             MethodInfo? field = typeof(DbContextOptionsServices).GetMethod("ReplaceTokens", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(field);
             string? result = (string?)field.Invoke(svc, new object[] { "{Portfolio:UserSecretsId}" });
             // Should resolve or return null/empty if not found
-            Assert.IsTrue(result == null || result is string);
+            Assert.IsTrue(result is null or string);
         }
 
         [TestMethod]
@@ -178,9 +183,9 @@ namespace Portfolio.Infrastructure.Tests.Services
         {
             MethodInfo? method = typeof(DbContextOptionsServices).GetMethod("ApplyEnvironmentOverrides", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.IsNotNull(method);
-            ConcurrentDictionary<string, string> dict = new System.Collections.Concurrent.ConcurrentDictionary<string, string> { ["A"] = "1" };
-            ConcurrentDictionary<string, string> env = new System.Collections.Concurrent.ConcurrentDictionary<string, string> { ["A"] = "2" };
-            method.Invoke(null, new object[] { dict, env });
+            ConcurrentDictionary<string, string> dict = new() { ["A"] = "1" };
+            ConcurrentDictionary<string, string> env = new() { ["A"] = "2" };
+            _ = method.Invoke(null, new object[] { dict, env });
             Assert.AreEqual("2", dict["A"]);
         }
         #endregion

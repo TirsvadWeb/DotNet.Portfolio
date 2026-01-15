@@ -45,7 +45,7 @@ public class DbContextOptionsServices : IDbContextOptionsServices
     private readonly string? _env;
     // The configuration root used for resolving settings
     private IConfiguration? _config;
-    private static readonly object _optionsLock = new();
+    private static readonly Lock _optionsLock = new();
     #endregion
 
     #region constructors
@@ -90,24 +90,35 @@ public class DbContextOptionsServices : IDbContextOptionsServices
     /// <inheritdoc/>
     public string CreateConnectionString(string environment, string? name = null)
     {
+        Debug.WriteLine($"Building connection string for environment: {environment}");
+        string? envForDb = null;
         _config = BuildConfiguration(environment);
 
-        string s = $"ConnectionStrings:Database:Default:{environment}";
+        string? envVar = Environment.GetEnvironmentVariable("DOCKER_DOTNET_TEST");
+        Debug.WriteLine($"Current DOCKER_DOTNET_TEST: {envVar}");
 
-        Debug.WriteLine($"Building connection string for environment: {environment}");
+        if (Environment.GetEnvironmentVariable("DOCKER_DOTNET_TEST") == "true")
+        {
+            envForDb = "Test";
+        }
+
+
+        string connectionsStringInit = $"ConnectionStrings:Database:Default:{envForDb ?? environment}";
+
+        Debug.WriteLine($"Looking for Database conf in json path {connectionsStringInit}");
 
         // Try to resolve the connection string from several common locations.
-        IConfigurationSection connectionConfig = _config!.GetSection(s);
+        IConfigurationSection? connectionConfig = _config!.GetSection(connectionsStringInit);
         if (!connectionConfig.Exists())
             throw new Exception($"Connection string not found for environment: {environment}");
 
-        Debug.WriteLine($"\tConnection Config Section: {s}");
+        Debug.WriteLine($"\tConnection Config Section: {connectionsStringInit}");
 
         ConcurrentDictionary<string, string> connectionDict = BuildConnectionDictionaryFromConfig(connectionConfig);
         List<string> connectionTags = [];
 
         ConcurrentDictionary<string, string> envOverrides = GetEnvironmentConnectionOverrides();
-        bool envOverride = envOverrides.Count > 0;
+        bool envOverride = !envOverrides.IsEmpty;
         if (envOverride)
         {
             ApplyEnvironmentOverrides(connectionDict, envOverrides);
@@ -119,7 +130,7 @@ public class DbContextOptionsServices : IDbContextOptionsServices
             connectionDict["Initial Catalog"] = name;
         }
 
-        connectionTags = connectionDict.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList();
+        connectionTags = [.. connectionDict.Select(kvp => $"{kvp.Key}={kvp.Value}")];
 
         foreach (string? value in connectionTags)
         {
@@ -130,7 +141,7 @@ public class DbContextOptionsServices : IDbContextOptionsServices
 
         Debug.WriteLine($"\t\tConfig: {connectionString}");
 
-        if (string.IsNullOrWhiteSpace(s))
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new Exception($"Connection string is null or empty for environment: {environment}");
         }
@@ -178,12 +189,12 @@ public class DbContextOptionsServices : IDbContextOptionsServices
         if (!string.IsNullOrWhiteSpace(environment))
         {
             _ = builder.AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false);
-            if (string.Equals(environment, "Release", StringComparison.OrdinalIgnoreCase))
-            {
-                _ = builder.AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false);
-            }
+            //if (string.Equals(environment, "Release", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    _ = builder.AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false);
+            //}
         }
-        _ = builder.AddJsonFile("secrets.json", optional: false, reloadOnChange: false);
+        _ = builder.AddJsonFile("secrets.json", optional: true, reloadOnChange: false);
     }
 
     /// <summary>
@@ -279,7 +290,7 @@ public class DbContextOptionsServices : IDbContextOptionsServices
             return value;
 
         // If the value is a token (e.g., {SomeKey}), resolve it from configuration
-        if (value.StartsWith("{") && value.EndsWith("}"))
+        if (value.StartsWith('{') && value.EndsWith('}'))
         {
             string token = value[1..^1];
             string? resolvedValue = _config.GetValue<string>(token);
@@ -322,8 +333,8 @@ public class DbContextOptionsServices : IDbContextOptionsServices
     /// </summary>
     private static ConcurrentDictionary<string, string> GetEnvironmentConnectionOverrides()
     {
-        (string envVar, string connKey)[] envMap = new (string envVar, string connKey)[]
-        {
+        (string envVar, string connKey)[] envMap =
+        [
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__DATASOURCE", "Data Source"),
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__INITIALCATALOG", "Initial Catalog"),
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__USERID", "User ID"),
@@ -331,7 +342,7 @@ public class DbContextOptionsServices : IDbContextOptionsServices
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__MULTIPLEACTIVERESULTSETS", "MultipleActiveResultSets"),
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__TRUSTSERVER", "TrustServerCertificate"),
             ("DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__ENCRYPT", "Encrypt"),
-        };
+        ];
         ConcurrentDictionary<string, string> overrides = new(StringComparer.OrdinalIgnoreCase);
         foreach ((string? envVar, string? connKey) in envMap)
         {
@@ -394,8 +405,8 @@ public class DbContextOptionsServices : IDbContextOptionsServices
     private static string[] GetPathParts(string path)
     {
         return string.IsNullOrEmpty(path)
-            ? Array.Empty<string>()
-            : path.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+            ? []
+            : path.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
     }
 
     /// <summary>

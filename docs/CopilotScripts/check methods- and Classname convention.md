@@ -1,11 +1,8 @@
-# classBuilder Script
-
+# Check methods- and Classname convention
 
 ```plaintext
-Add region fields, properties, constructors, public methods, helpers, overrides, events
-Only if there is code for region
-
 check methods- and Classname convention
+
 Helper - static class with pure functions. Very generic, no state, very small
 Manager - collection of methods pertaining to some kind of context. No state outside of injected classes. Generally performing some business logic that didn’t fit into a domain model. Small/Med size methods
 Mapper - transforms one object to another

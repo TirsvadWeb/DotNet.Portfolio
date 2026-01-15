@@ -33,6 +33,7 @@
     <File Path="docs/usecases.md" />
   </Folder>
   <Folder Name="/Solution Items/docs/CopilotScripts/">
+    <File Path="docs/CopilotScripts/check methods- and Classname convention.md" />
     <File Path="docs/CopilotScripts/classBuilder.md" />
     <File Path="docs/CopilotScripts/mstest.md" />
     <File Path="docs/CopilotScripts/xmlDocumentation.md" />

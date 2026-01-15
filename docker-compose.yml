@@ -30,8 +30,9 @@ services:
     environment:
       - DOTNET_RUNNING_IN_CONTAINER=true
       - DOTNET_CLI_TELEMETRY_OPTOUT=1
-      - DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__DATASOURCE=host.docker.internal
-      - ASPNETCORE_ENVIRONMENT=Release
+      #- DOTNET_PORTFOLIO_CONNECTIONSTRINGS__DEFAULTCONNECTION__DATASOURCE=host.docker.internal
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOCKER_DOTNET_TEST=true
     restart: "no"
     # The Dockerfile.tests CMD will restore (if needed) and run tests using the mounted workspace
     # Ensure host.docker.internal resolves to the host gateway for environments that require it

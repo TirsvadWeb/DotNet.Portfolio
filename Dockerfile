@@ -47,9 +47,9 @@ SHELL ["/bin/bash", "-lc"]
 WORKDIR /workspace
 
 # Ensure environment variables are available inside the test-runner container
-ENV ASPNETCORE_ENVIRONMENT=Release \
-    DB_PORTFOLIO_DBNAME=TirsvadWebPortfolio_Test \
-    DB_PORTFOLIO_HOST=host.docker.internal
+#ENV ASPNETCORE_ENVIRONMENT=Development \
+    #DOCKER_DOTNET_TEST=true
+    #DB_PORTFOLIO_HOST=host.docker.internal
 
 # Copy the repo so tests can run without relying on a mounted workspace (optional)
 COPY ./ /workspace
