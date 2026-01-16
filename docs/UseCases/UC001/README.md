@@ -56,7 +56,7 @@ The maintained Domain Model can be found [here][DM].
 
 ```mermaid
 classDiagram
-    class User {
+    class ApplicationUser {
         Email
     }
 
